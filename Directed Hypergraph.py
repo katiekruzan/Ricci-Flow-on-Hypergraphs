@@ -1,13 +1,13 @@
-from ortools.linear_solver import pywraplp
+# from ortools.linear_solver import pywraplp
 from collections import defaultdict, deque
 import random
 import time
 import numpy as np
-import ot
+# import ot
 import json
 import re
 import numpy as np
-from gurobipy import Model, GRB, quicksum
+# from gurobipy import Model, GRB, quicksum
 import pandas as pd
 import csv
 
@@ -356,10 +356,11 @@ class DirectedHypergraph:
     
         
     def import_reactions(self, json_file_path):
+        '''Make a Hypergraph based on reactions from a json'''
         with open(json_file_path, 'r') as file:
             data = json.load(file)
 
-    # Regular expression pattern to match enzyme IDs
+        # Regular expression pattern to match enzyme IDs
         enzyme_pattern = re.compile(r'b\d+')
 
         for reaction in data['reactions']:
@@ -369,11 +370,11 @@ class DirectedHypergraph:
 
             # Extract enzymes using regular expression
             enzymes = enzyme_pattern.findall(gene_reaction_rule)
+            # print(enzymes)
 
             # Check if the reaction is reversible
             is_reversible = reaction.get('lower_bound', 0.0) < 0.0
             
-
             # Separating reactants and products
             reactants = [metabolite for metabolite, coefficient in metabolites.items() if coefficient < 0]
             products = [metabolite for metabolite, coefficient in metabolites.items() if coefficient > 0]
@@ -389,7 +390,6 @@ class DirectedHypergraph:
             # Add hyperedge for the forward reaction
             self.add_hyperedge(reaction_id + "_forward", set(reactants), set(products), enzymes)
 
-            
             # If the reaction is reversible, add another hyperedge for the reverse reaction
             if is_reversible:
                self.add_hyperedge(reaction_id + "_reverse", set(products), set(reactants), enzymes)
@@ -537,18 +537,17 @@ class DirectedHypergraph:
 # Sample usage
 if __name__ == "__main__":
     hypergraph = DirectedHypergraph()
-    hypergraph.import_reactions('/Users/iJN678.json')  # Replace with the actual file path. We get these json files from BiGG Models.
+    #TODO: We need to see what the JSON file needs to look like
+    hypergraph.import_reactions('inputfiles/iJN678.json')  # Replace with the actual file path. We get these json files from BiGG Models.
    
-    
+    # print(hypergraph.enzymes.items())
     # Print the hyperedges and associated enzymes for verification
     for hyperedge_id, enzymes in hypergraph.enzymes.items():
         print(f"Hyperedge {hyperedge_id} has enzymes: {enzymes}")
         
-
     for hyperedge_id, hyperedge in hypergraph.hyperedges.items():
         print(f"Hyperedge {hyperedge_id} has these tail set and head set: {hyperedge}")
         
-
 
     print("Number of reactions or hypergedges:",len(hypergraph.hyperedges)) #Printing the number of hyperedges or reactions in our network.
     print("Number of nodes or metabolites",len(hypergraph.nodes)) #Printing the number of nodes or 'metabolites' in the network.
@@ -556,7 +555,7 @@ if __name__ == "__main__":
     print("The hypergraph is weakly connected:" if connected else "The hypergraph is not weakly connected.")
     strongly_connected = hypergraph.is_strongly_connected()
     print("The hypergraph is strongly connected." if strongly_connected else "The hypergraph is not strongly connected.")
-
+    quit()
     min_enzymes = hypergraph.greedy_enzyme_set_cover()
     print("Minimum set of enzymes to cover all hyperedges:", min_enzymes)
 
