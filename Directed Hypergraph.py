@@ -13,20 +13,24 @@ import csv
 
 
 class DirectedHypergraph:
-    '''Initializing the hypergraph'''
     def __init__(self):
+        '''Initializing the hypergraph'''
         self.nodes = set()
         self.hyperedges = {}
         self.enzymes = {}  # Dictionary to store enzymes associated with hyperedges
         self.weights = {}
         self.ricci_curvature = {}
 
-    '''Function to add a node to the hypergraph'''
+
     def add_node(self, node):
+        '''Function to add a node to the hypergraph'''
+        '''TODO: What type is the node?'''
         self.nodes.add(node)
 
-    '''Function to add a hyperedge to the hypergraph'''
+
     def add_hyperedge(self, hyperedge_id, tail_set, head_set, enzymes=None):
+        '''Function to add a hyperedge to the hypergraph'''
+        '''TODO: get the types needed for this'''
         self.hyperedges[hyperedge_id] = (tail_set, head_set)
         self.weights[hyperedge_id]=[1]
         if enzymes is not None:
@@ -34,23 +38,23 @@ class DirectedHypergraph:
         else:
             self.enzymes[hyperedge_id] = []  # Initialize with an empty list if no enzymes are provided
 
-    '''Function to add ollivier ricci curvature for all hyperedges for every iteration'''
+
     def add_ricci_curvature(self, hyperedge_id, orc):
+        '''Function to add ollivier ricci curvature for all hyperedges for every iteration'''
         if hyperedge_id not in self.ricci_curvature:
             self.ricci_curvature[hyperedge_id] = []  # Initialize with an empty list if key doesn't exist
         
         self.ricci_curvature[hyperedge_id].append(orc)
 
 
-    '''Function to add weights for all hyperedges for every iteration'''
-    def add_weights(self, hyperedge_id, weights):
+    def add_weights(self, hyperedge_id, weights):    
+        '''Function to add weights for all hyperedges for every iteration'''
         if weights is not None:
             self.weights[hyperedge_id].append(weights)
-            
 
 
-    '''Function to get the edges from the hyperedges'''
     def get_underlying_edges(self):
+        '''Function to get the edges from the hyperedges'''
         '''Extract all edges from the hyperedges'''
         edges = set()
         for tail_set, head_set in self.hyperedges.values():
@@ -61,8 +65,8 @@ class DirectedHypergraph:
         return edges
     
 
-    '''Function to remove nodes from the hypergraph'''
-    def remove_node(self, node):
+    def remove_node(self, node):    
+        '''Function to remove nodes from the hypergraph'''
         if node in self.nodes:
             self.nodes.remove(node)
             for hyperedge_id, hyperedge in list(self.hyperedges.items()):
@@ -70,8 +74,8 @@ class DirectedHypergraph:
                     self.remove_hyperedge(hyperedge_id)
 
 
-    '''Function to remove hyperedges from the hypergraph'''
     def remove_hyperedge(self, hyperedge_id):
+        '''Function to remove hyperedges from the hypergraph'''  
         if hyperedge_id in self.hyperedges:
             # Retrieve tail and head sets of the hyperedge
             tail_set, head_set = self.hyperedges[hyperedge_id]
@@ -100,16 +104,18 @@ class DirectedHypergraph:
             print(f"No hyperedge found with ID: {hyperedge_id}")
    
 
-    '''Function to calculate the in-degree of a node in the hypergraph, i.e., number of times a node appears in the head set of a hyperedge'''
     def calculate_d_in_x(self, node):
+        '''Function to calculate the in-degree of a node in the hypergraph, 
+        i.e., number of times a node appears in the head set of a hyperedge'''
         d_in_x = 0
         for _, (_, head_set) in self.hyperedges.items():
             if node in head_set:
                 d_in_x += 1
         return d_in_x
 
-    '''Function to calculate the out-degree of a node in the hypergraph, i.e., number of times a node appears in the tail set of a hyperedge'''
     def calculate_d_out_x(self, node):
+        '''Function to calculate the out-degree of a node in the hypergraph, 
+        i.e., number of times a node appears in the tail set of a hyperedge'''
         d_out_x = 0
         for _, (tail_set, _) in self.hyperedges.items():
             if node in tail_set:
@@ -117,8 +123,8 @@ class DirectedHypergraph:
         return d_out_x
 
     
-    '''Function that outputs the distance matrix for all pair shortest path'''
     def floyd_warshall_with_weights(self):
+        '''Function that outputs the distance matrix for all pair shortest path'''
         # Initialize the distance matrix with "infinite" distances
         # Assume self.nodes is a list or set of nodes
         node_list = list(self.nodes)  # Convert to list to ensure consistent ordering
@@ -129,7 +135,7 @@ class DirectedHypergraph:
 
         # Initialize a 2D list (matrix) with "infinite" distances
         dist = [[float('inf') for _ in range(node_count)] for _ in range(node_count)]
-        #dist = [[100 for _ in range(node_count)] for _ in range(node_count)]
+        
         # Set the diagonal to 0 (distance from each node to itself)
         for i in range(node_count):
             dist[i][i] = 0
@@ -211,8 +217,8 @@ class DirectedHypergraph:
     
     
     
-    '''Function to calculate the probability distributions over all nodes based on the hyperedge'''
     def calculate_probability_distributions(self, hyperedge_id):
+        '''Function to calculate the probability distributions over all nodes based on the hyperedge'''
         tail_set, head_set = self.hyperedges[hyperedge_id]
 
         # Initialize mu_A and mu_B only for nodes in the tail set and head set respectively
@@ -272,8 +278,8 @@ class DirectedHypergraph:
 
         
 
-    '''Function to calculate EMD using the distance matrix (Optimized)'''
     def earthmover_distance_gurobi_distance_matrix(self, hyperedge_id, distance_matrix):
+        '''Function to calculate EMD using the distance matrix (Optimized)'''
         # Get the probability distributions for the specified hyperedge.
         mu_A, mu_B = self.calculate_probability_distributions(hyperedge_id)
 
@@ -389,8 +395,8 @@ class DirectedHypergraph:
                self.add_hyperedge(reaction_id + "_reverse", set(products), set(reactants), enzymes)
     
 
-    '''Check if the underlying graph is weakly connected'''
     def is_weakly_connected(self):
+        '''Check if the underlying graph is weakly connected'''
         if not self.nodes:
             return True
 
@@ -414,14 +420,16 @@ class DirectedHypergraph:
 
         return visited == self.nodes
     
-    '''Function to check if the Hypergraph is strongly connected'''
+    
     def is_strongly_connected(self):
+        '''Function to check if the Hypergraph is strongly connected'''
         for node1 in self.nodes:
             for node2 in self.nodes:
                 if node1 != node2:
                     if self.find_shortest_distance(node1, node2) == 0:
                         return False
         return True
+    
     
     def average_degree(self):
         total_in_degree, total_out_degree = 0, 0
@@ -433,6 +441,7 @@ class DirectedHypergraph:
         average_out_degree = total_out_degree / len(self.nodes)
 
         return average_in_degree, average_out_degree
+    
     
     def lowest_degree(self):
         min_in_degree = float('inf')
@@ -457,6 +466,7 @@ class DirectedHypergraph:
                 node_min_out_degree.append(node)
 
         return (min_in_degree, node_min_in_degree), (min_out_degree, node_min_out_degree)
+    
     
     def highest_degree(self):
         max_in_degree = 0
@@ -483,7 +493,6 @@ class DirectedHypergraph:
         return (max_in_degree, node_max_in_degree), (max_out_degree, node_max_out_degree)
 
     
-
     def calculate_distance_matrix(self):
         n = len(self.nodes)
         distance_matrix = [[0 for _ in range(n)] for _ in range(n)]
@@ -493,7 +502,6 @@ class DirectedHypergraph:
         return distance_matrix
 
     
-
     def get_connected_components(self):
         '''Find all connected components in the graph'''
         if not self.nodes:
