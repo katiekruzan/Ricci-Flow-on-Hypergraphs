@@ -464,7 +464,9 @@ class DirectedHypergraph:
     
     
     def lowest_degree(self):
-        '''
+        ''' Calculate the lowest degree in the graph. 
+            Get the smallest degree and the associated nodes.
+            For both in and out.
         '''
         min_in_degree = float('inf')
         min_out_degree = float('inf')
@@ -491,6 +493,10 @@ class DirectedHypergraph:
     
     
     def highest_degree(self):
+        ''' Calculate the highest degree in the graph. 
+            Get the largest degree and the associated nodes.
+            For both in and out.
+        '''
         max_in_degree = 0
         max_out_degree = 0
         node_max_in_degree = []
@@ -516,6 +522,11 @@ class DirectedHypergraph:
 
     
     def calculate_distance_matrix(self):
+        ''' Get the shortest distances in a matrix
+            Will return a [[int]].
+            
+            TODO: There is a world this will run waaaay longer than it needs to.
+            '''
         n = len(self.nodes)
         distance_matrix = [[0 for _ in range(n)] for _ in range(n)]
         for i, node1 in enumerate(self.nodes):
@@ -590,7 +601,6 @@ if __name__ == "__main__":
     print("Average Degree (In, Out):", avg_degree)
     print("Lowest Degree (In, Out):", lowest_degree)
     print("Highest Degree (In, Out):", highest_degree)
-    quit()
     
     def adjusted_sigmoid_0_to_1(x):
     # Clip x to a range that prevents overflow in exp.
@@ -599,11 +609,8 @@ if __name__ == "__main__":
         a, b = 0, 1  # Define the target range
         return a + (b - a) / (1 + np.exp(-x_clipped))
     
-    
-
-
-
     def update_orc_and_weights_iter(distance_matrix, iteration, file_format='csv'):
+        #TODO: This seems hardcoded
         file_name = f'methanosarcina_normalized_weights_data_iteration_{iteration}.{file_format}' #Name this file corresponding to the metabolic network
         
         with open(file_name, 'a', newline='') as file:
@@ -631,14 +638,12 @@ if __name__ == "__main__":
                     
                     writer.writerow([hyperedge_id, orc, normalized_weight])
                     
-    
-    
-
-    # Function to save the matrix as a CSV file
-    def save_matrix_csv(matrix, filename):
+    def save_matrix_csv(matrix, filename:str)-> None:
+        '''Function to save the matrix as a CSV file'''
         pd.DataFrame(matrix).to_csv(filename, index=False, header=False)
 
-    def load_matrix_csv(filename):
+    def load_matrix_csv(filename:str) -> np.ndarray:
+        '''Get the matrix from a local csv'''
         return pd.read_csv(filename, header=None).values
     
     #Function to calculate ORC for the 0th iteration
@@ -666,8 +671,6 @@ if __name__ == "__main__":
                     hypergraph.add_weights(hyperedge_id, normalized_weight)
                     
                     writer.writerow([hyperedge_id, orc, normalized_weight])
-
-    
 
     #Ricci Flow helper functions
     def find_top_n_weighted_hyperedges(file_path, n):
@@ -714,12 +717,12 @@ if __name__ == "__main__":
                 head_set = edge_data[1]
                 file.write(f"Hyperedge ID: {hyperedge_id}, Tail Set: {tail_set}, Head Set: {head_set}\n")
 
-
-
     #Ricci Flow with Surgery script
-    
-    
+    #TODO: is there a reason we're not using Floyd-Warshall here?
+    # TODO: for GUI, will probably need some sort of progress bar for this one.
     distance_matrix = hypergraph.calculate_distance_matrix()
+    print(distance_matrix)
+    quit()
     #save_matrix_csv(distance_matrix,'synechocystis_iter_0_distance_matrix.csv')
     #loaded_matrix = load_matrix_csv('methanosarcina_iter_0_distance_matrix.csv')
     update_orc_and_weights_iter0(distance_matrix,iteration=0)
