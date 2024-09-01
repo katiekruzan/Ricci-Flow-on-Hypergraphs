@@ -11,20 +11,20 @@ import csv
 import numpy as np
 
 class UndirectedHypergraph:
-    '''Initializing the hypergraph'''
     def __init__(self):
-        self.nodes = set()
-        self.hyperedges = {}
-        self.weights = {}
-        self.ricci_curvature = {}
+        '''Initializing the hypergraph'''
+        self.nodes = set() # arbitrary, not defined type as of now.
+        self.hyperedges = {} #dict from hyperedge id to lists of nodes in that edge
+        self.weights = {} # dict that had hyperedge ids to weights
+        self.ricci_curvature = {} #dict with hyperedge id to list of ricci curvatures
 
-    '''Function to add a node to the hypergraph'''
-    def add_node(self,node):
+    def add_node(self,node:any) -> None:
+        '''Function to add a node to the hypergraph'''
         self.nodes.add(node)
-        print(f"Node added: {node}")
+        # print(f"Node added: {node}")
 
-    """Add a hyperedge to the hypergraph. Automatically adds missing nodes."""
-    def add_hyperedge(self, hyperedge_id, nodes):
+    def add_hyperedge(self, hyperedge_id:str, nodes:list):
+        """Add a hyperedge to the hypergraph. Automatically adds missing nodes."""
         # Ensure nodes is a list
         if not isinstance(nodes, list):
             raise ValueError("Nodes must be provided as a list")
@@ -40,31 +40,33 @@ class UndirectedHypergraph:
 
         # Add the hyperedge
         self.hyperedges[hyperedge_id] = nodes
-        self.weights[hyperedge_id] = [1]
-        print(f"Hyperedge {hyperedge_id} added with nodes {nodes}")
+        self.weights[hyperedge_id] = [1] #init the weights to 1
+        # print(f"Hyperedge {hyperedge_id} added with nodes {nodes}")
 
-    '''Function to add ollivier ricci curvature for all hyperedges for every iteration'''
-    def add_ricci_curvature(self, hyperedge_id, orc):
+    def add_ricci_curvature(self, hyperedge_id:str, orc)-> None:
+        '''Function to add ollivier ricci curvature for all hyperedges for every iteration.
+            Seems to be appending onto a list.'''
         if hyperedge_id not in self.ricci_curvature:
             self.ricci_curvature[hyperedge_id] = []  # Initialize with an empty list if key doesn't exist
 
         self.ricci_curvature[hyperedge_id].append(orc)
 
-    '''Function to add weights for all hyperedges for every iteration'''
-    def add_weights(self, hyperedge_id, weights):
+    def add_weights(self, hyperedge_id:str, weights) -> None:
+        '''Function to add weights for all hyperedges for every iteration.
+            Seems to be appending to a list.'''
         if weights is not None:
             self.weights[hyperedge_id].append(weights)
 
-
-    '''Build hypergraph from a DataFrame'''
-    def build_from_dataframe(self, df):
+    def build_from_dataframe(self, df: pd.DataFrame):
+        '''Build hypergraph from a DataFrame'''
+        # make an edge from each paper in the csv
         for _, row in df.iterrows():
             paper_id = row['paper_id']
             author_ids = ast.literal_eval(row['author_ids'])
             self.add_hyperedge(paper_id, author_ids)
 
-    '''Retrieve authors for a given paper_id'''
     def get_authors_by_paper_id(self, paper_id):
+        '''Retrieve authors for a given paper_id'''
         if paper_id in self.hyperedges:
             return self.hyperedges[paper_id]
         else:
@@ -232,10 +234,9 @@ class UndirectedHypergraph:
         
         return probability_distribution
     
-
-    '''Find hyperedges that contain any of the specified nodes.'''
     def find_hyperedges_containing_nodes(self, *nodes):
         '''
+        Find hyperedges that contain any of the specified nodes.
         # Ensure input is treated as a list even if a single node is passed
         if isinstance(nodes, str):
             nodes = [nodes]  # Convert single string node to a list
@@ -496,20 +497,21 @@ class UndirectedHypergraph:
         
         average_degree = total_degree / len(self.nodes)
         return average_degree
-            
+
+def save_matrix_csv(matrix, filename:str) -> None:
+    '''Function to save the matrix as a CSV file'''    
+    pd.DataFrame(matrix).to_csv(filename, index=False, header=False)
+
+def load_matrix_csv(filename:str) -> np.ndarray:
+    '''Get the matrix from a local csv'''
+    return pd.read_csv(filename, header=None).values         
     
-    
-df = pd.read_csv('/Users/Undirected Hypergraph/dataset_turingpapers_clean.csv')  #Add the data file here
+# TODO: Add a main() function  
+#Add the data file here
+#TODO: describe how the dataframe needs to look
+df = pd.read_csv('/Users/Undirected Hypergraph/dataset_turingpapers_clean.csv')  
 hypergraph = UndirectedHypergraph()
 hypergraph.build_from_dataframe(df)
-
-
-def save_matrix_csv(matrix, filename):
-        pd.DataFrame(matrix).to_csv(filename, index=False, header=False)
-
-def load_matrix_csv(filename):
-    return pd.read_csv(filename, header=None).values
-
 
 print(len(hypergraph.nodes))
 print(len(hypergraph.hyperedges))
