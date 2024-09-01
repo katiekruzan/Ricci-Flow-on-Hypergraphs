@@ -15,24 +15,22 @@ import csv
 class DirectedHypergraph:
     def __init__(self):
         '''Initializing the hypergraph'''
-        self.nodes = set()
-        self.hyperedges = {}
+        self.nodes = set() # arbitrary, not defined type as of now.
+        self.hyperedges = {} # dict of ids to (tail, head) sets
         self.enzymes = {}  # Dictionary to store enzymes associated with hyperedges
-        self.weights = {}
+        self.weights = {} # dict that had hyperedge ids to weights
         self.ricci_curvature = {}
 
 
-    def add_node(self, node):
-        '''Function to add a node to the hypergraph'''
-        '''TODO: What type is the node?'''
+    def add_node(self, node:any):
+        '''Function to add a node to the hypergraph. The type is not set'''
         self.nodes.add(node)
 
 
-    def add_hyperedge(self, hyperedge_id, tail_set, head_set, enzymes=None):
+    def add_hyperedge(self, hyperedge_id:str, tail_set:set, head_set:set, enzymes=None):
         '''Function to add a hyperedge to the hypergraph'''
-        '''TODO: get the types needed for this'''
         self.hyperedges[hyperedge_id] = (tail_set, head_set)
-        self.weights[hyperedge_id]=[1]
+        self.weights[hyperedge_id]=[1] # init the weight to 1
         if enzymes is not None:
             self.enzymes[hyperedge_id] = enzymes
         else:
@@ -53,9 +51,12 @@ class DirectedHypergraph:
             self.weights[hyperedge_id].append(weights)
 
 
-    def get_underlying_edges(self):
-        '''Function to get the edges from the hyperedges'''
-        '''Extract all edges from the hyperedges'''
+    def get_underlying_edges(self) -> set:
+        '''Function to get the edges from the hyperedges.
+            Extract all edges from the hyperedges. 
+            These are all possible connections (aka turn hypergraph into simple graph)
+            TODO: Ask if this will effect anything if two nodes are connected in multiple edges? This is not capturing that, but is that okay?
+            '''
         edges = set()
         for tail_set, head_set in self.hyperedges.values():
             for tail in tail_set:
@@ -104,18 +105,22 @@ class DirectedHypergraph:
             print(f"No hyperedge found with ID: {hyperedge_id}")
    
 
-    def calculate_d_in_x(self, node):
+    def calculate_d_in_x(self, node) -> int:
         '''Function to calculate the in-degree of a node in the hypergraph, 
-        i.e., number of times a node appears in the head set of a hyperedge'''
+        i.e., number of times a node appears in the head set of a hyperedge.
+        
+        Should be a positive int'''
         d_in_x = 0
         for _, (_, head_set) in self.hyperedges.items():
             if node in head_set:
                 d_in_x += 1
         return d_in_x
 
-    def calculate_d_out_x(self, node):
+    def calculate_d_out_x(self, node) -> int:
         '''Function to calculate the out-degree of a node in the hypergraph, 
-        i.e., number of times a node appears in the tail set of a hyperedge'''
+        i.e., number of times a node appears in the tail set of a hyperedge
+        
+        Should be a positive int'''
         d_out_x = 0
         for _, (tail_set, _) in self.hyperedges.items():
             if node in tail_set:
@@ -176,16 +181,17 @@ class DirectedHypergraph:
         return dist
 
     
-    def find_shortest_distance(self, start, end):
+    def find_shortest_distance(self, start, end, max_hops = 3) -> int:
         """
         Find the shortest distance (number of hops) from start to end, but only up to a maximum number of hops.
 
         :param start: The starting node.
         :param end: The ending node.
         :param max_hops: Maximum number of hops allowed (default is 3).
-        :return: The shortest distance as an integer, or None if no path exists within the hop limit.
+        :return: The shortest distance as an integer, or 0 if no path exists within the hop limit.
         """
-        max_distance = 3
+        max_distance = max_hops
+        # error catching. if my nodes aren't in there, then there's no path
         if start not in self.nodes or end not in self.nodes:
             return 0
 
@@ -355,8 +361,11 @@ class DirectedHypergraph:
             return None
     
         
-    def import_reactions(self, json_file_path):
-        '''Make a Hypergraph based on reactions from a json'''
+    def import_reactions(self, json_file_path:str):
+        '''Make a Hypergraph based on reactions from a json
+        :param json_file_path: str file path to the json
+        '''
+        # load the json
         with open(json_file_path, 'r') as file:
             data = json.load(file)
 
@@ -370,7 +379,9 @@ class DirectedHypergraph:
 
             # Extract enzymes using regular expression
             enzymes = enzyme_pattern.findall(gene_reaction_rule)
-            # print(enzymes)
+            
+            # if len(enzymes)>0: print(reaction_id, enzymes)
+        
 
             # Check if the reaction is reversible
             is_reversible = reaction.get('lower_bound', 0.0) < 0.0
@@ -395,9 +406,12 @@ class DirectedHypergraph:
                self.add_hyperedge(reaction_id + "_reverse", set(products), set(reactants), enzymes)
     
 
-    def is_weakly_connected(self):
-        '''Check if the underlying graph is weakly connected'''
-        if not self.nodes:
+    def is_weakly_connected(self)-> bool:
+        '''Check if the underlying graph is weakly connected
+        TODO: I think this is just checking if the graph is connected. Where does the weakly come in?
+        '''
+        # I think this is saying an empty graph is weakly connected
+        if not self.nodes: 
             return True
 
         edges = self.get_underlying_edges()
@@ -421,8 +435,12 @@ class DirectedHypergraph:
         return visited == self.nodes
     
     
-    def is_strongly_connected(self):
-        '''Function to check if the Hypergraph is strongly connected'''
+    def is_strongly_connected(self)-> bool:
+        '''Function to check if the Hypergraph is strongly connected. 
+        TODO: add the definition of strongly connected here
+        Seems to be that you can get from every node to every other.
+        Also, this is checking if you can get there in 3 hops.
+        '''
         for node1 in self.nodes:
             for node2 in self.nodes:
                 if node1 != node2:
@@ -432,6 +450,8 @@ class DirectedHypergraph:
     
     
     def average_degree(self):
+        ''' Get the average in degree and out degree for the graph. As a tuple of (4In, Out)
+        '''
         total_in_degree, total_out_degree = 0, 0
         for node in self.nodes:
             total_in_degree += self.calculate_d_in_x(node)
@@ -444,6 +464,8 @@ class DirectedHypergraph:
     
     
     def lowest_degree(self):
+        '''
+        '''
         min_in_degree = float('inf')
         min_out_degree = float('inf')
         node_min_in_degree = []
@@ -542,11 +564,11 @@ if __name__ == "__main__":
    
     # print(hypergraph.enzymes.items())
     # Print the hyperedges and associated enzymes for verification
-    for hyperedge_id, enzymes in hypergraph.enzymes.items():
-        print(f"Hyperedge {hyperedge_id} has enzymes: {enzymes}")
+    # for hyperedge_id, enzymes in hypergraph.enzymes.items():
+    #     print(f"Hyperedge {hyperedge_id} has enzymes: {enzymes}")
         
-    for hyperedge_id, hyperedge in hypergraph.hyperedges.items():
-        print(f"Hyperedge {hyperedge_id} has these tail set and head set: {hyperedge}")
+    # for hyperedge_id, hyperedge in hypergraph.hyperedges.items():
+    #     print(f"Hyperedge {hyperedge_id} has these tail set and head set: {hyperedge}")
         
 
     print("Number of reactions or hypergedges:",len(hypergraph.hyperedges)) #Printing the number of hyperedges or reactions in our network.
@@ -555,9 +577,9 @@ if __name__ == "__main__":
     print("The hypergraph is weakly connected:" if connected else "The hypergraph is not weakly connected.")
     strongly_connected = hypergraph.is_strongly_connected()
     print("The hypergraph is strongly connected." if strongly_connected else "The hypergraph is not strongly connected.")
-    quit()
-    min_enzymes = hypergraph.greedy_enzyme_set_cover()
-    print("Minimum set of enzymes to cover all hyperedges:", min_enzymes)
+    #TODO: find greedy_enzyme_set_cover
+    # min_enzymes = hypergraph.greedy_enzyme_set_cover()
+    # print("Minimum set of enzymes to cover all hyperedges:", min_enzymes)
 
     # Call the functions
     avg_degree = hypergraph.average_degree()
@@ -568,7 +590,7 @@ if __name__ == "__main__":
     print("Average Degree (In, Out):", avg_degree)
     print("Lowest Degree (In, Out):", lowest_degree)
     print("Highest Degree (In, Out):", highest_degree)
-    
+    quit()
     
     def adjusted_sigmoid_0_to_1(x):
     # Clip x to a range that prevents overflow in exp.
