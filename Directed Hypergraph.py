@@ -408,7 +408,6 @@ class DirectedHypergraph:
 
     def is_weakly_connected(self)-> bool:
         '''Check if the underlying graph is weakly connected
-        TODO: I think this is just checking if the graph is connected. Where does the weakly come in?
         '''
         # I think this is saying an empty graph is weakly connected
         if not self.nodes: 
@@ -564,8 +563,129 @@ class DirectedHypergraph:
 
         return components
 
+def save_matrix_csv(matrix, filename:str)-> None:
+    '''Function to save the matrix as a CSV file'''
+    pd.DataFrame(matrix).to_csv(filename, index=False, header=False)
     
+
+def load_matrix_csv(filename:str) -> np.ndarray:
+    '''Get the matrix from a local csv'''
+    return pd.read_csv(filename, header=None).values  
+  
     
+def adjusted_sigmoid_0_to_1(x):
+    # Clip x to a range that prevents overflow in exp.
+    # The range of -709 to 709 is chosen based on the practical limits of np.exp()
+    x_clipped = np.clip(x, -709, 709)
+    a, b = 0, 1  # Define the target range
+    return a + (b - a) / (1 + np.exp(-x_clipped))
+
+
+def update_orc_and_weights_iter(distance_matrix, iteration, file_format='csv'):
+    #TODO: This seems hardcoded
+    file_name = f'methanosarcina_normalized_weights_data_iteration_{iteration}.{file_format}' #Name this file corresponding to the metabolic network
+    
+    with open(file_name, 'a', newline='') as file:
+        if file_format == 'csv':
+            writer = csv.writer(file)
+            # Check if the file is empty to write headers
+            if file.tell() == 0:
+                writer.writerow(['Hyperedge ID', 'ORC', 'Weight'])
+            
+            for hyperedge_id in hypergraph.hyperedges:
+                emd = hypergraph.earthmover_distance_gurobi_distance_matrix(hyperedge_id, distance_matrix)
+                weight = hypergraph.weights[hyperedge_id][-1] 
+                if weight != 0:
+                    orc = 1 - (emd/weight)
+                    hypergraph.add_ricci_curvature(hyperedge_id, orc)
+                    weight = weight * (1 - orc)
+                    normalized_weight = adjusted_sigmoid_0_to_1(weight)
+                else:
+                    orc = 1 - (emd)
+                    hypergraph.add_ricci_curvature(hyperedge_id, orc)
+                    normalized_weight = 0
+                
+
+                hypergraph.add_weights(hyperedge_id, normalized_weight)
+                
+                writer.writerow([hyperedge_id, orc, normalized_weight])
+                
+                
+#Function to calculate ORC for the 0th iteration
+def update_orc_and_weights_iter0(distance_matrix, iteration, file_format='csv'):
+    #TODO: Also seems hardcoded
+    file_name = f'methanosarcina_ORC_weights_iteration_{iteration}.{file_format}'
+    
+    with open(file_name, 'a', newline='') as file:
+        if file_format == 'csv':
+            writer = csv.writer(file)
+            # Check if the file is empty to write headers
+            if file.tell() == 0:
+                writer.writerow(['Hyperedge ID', 'ORC', 'Weight'])
+            
+            for hyperedge_id in hypergraph.hyperedges:
+                emd = hypergraph.earthmover_distance_gurobi_distance_matrix(hyperedge_id, distance_matrix)
+                orc = 1 - emd
+                hypergraph.add_ricci_curvature(hyperedge_id, orc)
+                
+                if hypergraph.weights[hyperedge_id][-1] == 0:
+                    normalized_weight = 0
+                else:
+                    normalized_weight = hypergraph.weights[hyperedge_id][-1] * (1 - orc)
+                    #normalized_weight = 1
+
+                hypergraph.add_weights(hyperedge_id, normalized_weight)
+                
+                writer.writerow([hyperedge_id, orc, normalized_weight])
+
+
+#Ricci Flow helper functions
+def find_top_n_weighted_hyperedges(file_path, n):
+
+    # Load the CSV file
+    df = pd.read_csv(file_path)
+
+    # Sort the DataFrame based on the 'Weight' column in descending order
+    df_sorted = df.sort_values(by='Weight', ascending=False)
+
+    # Select the top n rows and only the 'Hyperedge ID' column
+    top_n_hyperedges_ids = df_sorted.head(n)['Hyperedge ID'].tolist()
+
+    # Select the top n rows
+    top_n_hyperedges = df_sorted.head(n)
+
+    return top_n_hyperedges_ids
+
+def save_and_update(distance_matrix, iteration):
+    #TODO: certainly hardcoded
+    filename = f'distance_matrix_methanosarcina_normalized_weights_{iteration}.csv'
+    save_matrix_csv(distance_matrix, filename)
+    update_orc_and_weights_iter(distance_matrix, iteration)
+
+def delete_hyperedges(file_path, percentage=0.08):
+    total_hyperedges = len(hypergraph.hyperedges)
+    del_hyperedges = int(percentage * total_hyperedges)
+    hyperedges_to_remove = find_top_n_weighted_hyperedges(file_path, del_hyperedges)
+    for he in hyperedges_to_remove:
+        hypergraph.remove_hyperedge(he)
+
+def write_hypergraph_stats(file_path, iteration):
+    with open(file_path, 'w') as file:
+        file.write(f"Number of reactions or hyperedges: {len(hypergraph.hyperedges)}\n")
+        file.write(f"Number of nodes or metabolites: {len(hypergraph.nodes)}\n")
+        connected = hypergraph.is_weakly_connected()
+        file.write("The hypergraph is weakly connected:\n" if connected else "The hypergraph is not weakly connected.\n")
+        components = hypergraph.get_connected_components()
+        file.write(f"Connected Components: {components}\n")
+        file.write(f"No. of modules: {len(components)}\n")
+        # # Listing all hyperedges
+        file.write("\nList of all hyperedges:\n")
+        for hyperedge_id, edge_data in hypergraph.hyperedges.items():
+            tail_set = edge_data[0]
+            head_set = edge_data[1]
+            file.write(f"Hyperedge ID: {hyperedge_id}, Tail Set: {tail_set}, Head Set: {head_set}\n")
+
+
 
 # Sample usage
 if __name__ == "__main__":
@@ -602,121 +722,6 @@ if __name__ == "__main__":
     print("Lowest Degree (In, Out):", lowest_degree)
     print("Highest Degree (In, Out):", highest_degree)
     
-    def adjusted_sigmoid_0_to_1(x):
-    # Clip x to a range that prevents overflow in exp.
-    # The range of -709 to 709 is chosen based on the practical limits of np.exp()
-        x_clipped = np.clip(x, -709, 709)
-        a, b = 0, 1  # Define the target range
-        return a + (b - a) / (1 + np.exp(-x_clipped))
-    
-    def update_orc_and_weights_iter(distance_matrix, iteration, file_format='csv'):
-        #TODO: This seems hardcoded
-        file_name = f'methanosarcina_normalized_weights_data_iteration_{iteration}.{file_format}' #Name this file corresponding to the metabolic network
-        
-        with open(file_name, 'a', newline='') as file:
-            if file_format == 'csv':
-                writer = csv.writer(file)
-                # Check if the file is empty to write headers
-                if file.tell() == 0:
-                    writer.writerow(['Hyperedge ID', 'ORC', 'Weight'])
-                
-                for hyperedge_id in hypergraph.hyperedges:
-                    emd = hypergraph.earthmover_distance_gurobi_distance_matrix(hyperedge_id, distance_matrix)
-                    weight = hypergraph.weights[hyperedge_id][-1] 
-                    if weight != 0:
-                        orc = 1 - (emd/weight)
-                        hypergraph.add_ricci_curvature(hyperedge_id, orc)
-                        weight = weight * (1 - orc)
-                        normalized_weight = adjusted_sigmoid_0_to_1(weight)
-                    else:
-                        orc = 1 - (emd)
-                        hypergraph.add_ricci_curvature(hyperedge_id, orc)
-                        normalized_weight = 0
-                    
-
-                    hypergraph.add_weights(hyperedge_id, normalized_weight)
-                    
-                    writer.writerow([hyperedge_id, orc, normalized_weight])
-                    
-    def save_matrix_csv(matrix, filename:str)-> None:
-        '''Function to save the matrix as a CSV file'''
-        pd.DataFrame(matrix).to_csv(filename, index=False, header=False)
-
-    def load_matrix_csv(filename:str) -> np.ndarray:
-        '''Get the matrix from a local csv'''
-        return pd.read_csv(filename, header=None).values
-    
-    #Function to calculate ORC for the 0th iteration
-    def update_orc_and_weights_iter0(distance_matrix, iteration, file_format='csv'):
-        file_name = f'methanosarcina_ORC_weights_iteration_{iteration}.{file_format}'
-        
-        with open(file_name, 'a', newline='') as file:
-            if file_format == 'csv':
-                writer = csv.writer(file)
-                # Check if the file is empty to write headers
-                if file.tell() == 0:
-                    writer.writerow(['Hyperedge ID', 'ORC', 'Weight'])
-                
-                for hyperedge_id in hypergraph.hyperedges:
-                    emd = hypergraph.earthmover_distance_gurobi_distance_matrix(hyperedge_id, distance_matrix)
-                    orc = 1 - emd
-                    hypergraph.add_ricci_curvature(hyperedge_id, orc)
-                    
-                    if hypergraph.weights[hyperedge_id][-1] == 0:
-                        normalized_weight = 0
-                    else:
-                        normalized_weight = hypergraph.weights[hyperedge_id][-1] * (1 - orc)
-                        #normalized_weight = 1
-
-                    hypergraph.add_weights(hyperedge_id, normalized_weight)
-                    
-                    writer.writerow([hyperedge_id, orc, normalized_weight])
-
-    #Ricci Flow helper functions
-    def find_top_n_weighted_hyperedges(file_path, n):
-    
-        # Load the CSV file
-        df = pd.read_csv(file_path)
-
-        # Sort the DataFrame based on the 'Weight' column in descending order
-        df_sorted = df.sort_values(by='Weight', ascending=False)
-
-        # Select the top n rows and only the 'Hyperedge ID' column
-        top_n_hyperedges_ids = df_sorted.head(n)['Hyperedge ID'].tolist()
-
-        # Select the top n rows
-        top_n_hyperedges = df_sorted.head(n)
-
-        return top_n_hyperedges_ids
-    
-    def save_and_update(distance_matrix, iteration):
-        filename = f'distance_matrix_methanosarcina_normalized_weights_{iteration}.csv'
-        save_matrix_csv(distance_matrix, filename)
-        update_orc_and_weights_iter(distance_matrix, iteration)
-
-    def delete_hyperedges(file_path, percentage=0.08):
-        total_hyperedges = len(hypergraph.hyperedges)
-        del_hyperedges = int(percentage * total_hyperedges)
-        hyperedges_to_remove = find_top_n_weighted_hyperedges(file_path, del_hyperedges)
-        for he in hyperedges_to_remove:
-            hypergraph.remove_hyperedge(he)
-
-    def write_hypergraph_stats(file_path, iteration):
-        with open(file_path, 'w') as file:
-            file.write(f"Number of reactions or hyperedges: {len(hypergraph.hyperedges)}\n")
-            file.write(f"Number of nodes or metabolites: {len(hypergraph.nodes)}\n")
-            connected = hypergraph.is_weakly_connected()
-            file.write("The hypergraph is weakly connected:\n" if connected else "The hypergraph is not weakly connected.\n")
-            components = hypergraph.get_connected_components()
-            file.write(f"Connected Components: {components}\n")
-            file.write(f"No. of modules: {len(components)}\n")
-            # # Listing all hyperedges
-            file.write("\nList of all hyperedges:\n")
-            for hyperedge_id, edge_data in hypergraph.hyperedges.items():
-                tail_set = edge_data[0]
-                head_set = edge_data[1]
-                file.write(f"Hyperedge ID: {hyperedge_id}, Tail Set: {tail_set}, Head Set: {head_set}\n")
-
     #Ricci Flow with Surgery script
     #TODO: is there a reason we're not using Floyd-Warshall here?
     # TODO: for GUI, will probably need some sort of progress bar for this one.
