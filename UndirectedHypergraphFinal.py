@@ -414,36 +414,36 @@ class UndirectedHypergraph:
         return len(visited) == len(self.nodes)
     
     def connected_components(self):
-      """
-      Find all connected components of the hypergraph.
-      Each component is a set of nodes that are connected.
+        """
+        Find all connected components of the hypergraph.
+        Each component is a set of nodes that are connected.
 
-      :return: A list of sets, each set being a connected component.
-      """
-      if not self.nodes:
-          return []
+        :return: A list of sets, each set being a connected component.
+        """
+        if not self.nodes:
+            return []
 
-      visited = set()
-      components = []
+        visited = set()
+        components = []
 
-      for node in self.nodes:
-          if node not in visited:
-              # Start a new component
-              current_component = set()
-              queue = deque([node])
+        for node in self.nodes:
+            if node not in visited:
+                # Start a new component
+                current_component = set()
+                queue = deque([node])
 
-              # Perform BFS to find all nodes in this component
-              while queue:
-                  current = queue.popleft()
-                  if current not in visited:
-                      visited.add(current)
-                      current_component.add(current)
-                      # Enqueue all non-visited neighbors
-                      queue.extend(self.neighbours(current) - visited)
+                # Perform BFS to find all nodes in this component
+                while queue:
+                    current = queue.popleft()
+                    if current not in visited:
+                        visited.add(current)
+                        current_component.add(current)
+                        # Enqueue all non-visited neighbors
+                        queue.extend(self.neighbours(current) - visited)
 
-              components.append(current_component)
+                components.append(current_component)
 
-      return components
+        return components
     
     def remove_hyperedge(self, hyperedge_id):
         """
@@ -468,7 +468,7 @@ class UndirectedHypergraph:
         else:
             print(f"Hyperedge ID {hyperedge_id} not found.")
     
-    
+    '''
     def max_degree(self):
         max_degree = 0
         for node in self.nodes:
@@ -497,6 +497,7 @@ class UndirectedHypergraph:
         
         average_degree = total_degree / len(self.nodes)
         return average_degree
+    '''
 
 def save_matrix_csv(matrix, filename:str) -> None:
     '''Function to save the matrix as a CSV file'''    
@@ -555,7 +556,74 @@ def update_orc_and_weights_iter(distance_matrix, iteration, file_format='csv'):
                     normalized_weight = 0
                 hypergraph.add_weights(hyperedge_id, normalized_weight)
                 writer.writerow([hyperedge_id, orc, normalized_weight])
-      
+
+
+def find_top_n_weighted_hyperedges(file_path, n):
+    # Load the CSV file
+    df = pd.read_csv(file_path)
+
+    # Sort the DataFrame based on the 'Weight' column in descending order
+    df_sorted = df.sort_values(by='Weight', ascending=False)
+
+    # Select the top n rows and only the 'Hyperedge ID' column
+    top_n_hyperedges_ids = df_sorted.head(n)['Hyperedge ID'].tolist()
+
+    # Select the top n rows
+    top_n_hyperedges = df_sorted.head(n)
+
+    return top_n_hyperedges_ids
+
+def save_and_update(distance_matrix, iteration):
+    filename = f'distance_matrix_normalized_weights_{iteration}.csv'
+    save_matrix_csv(distance_matrix, filename)
+    update_orc_and_weights_iter(distance_matrix, iteration)
+
+
+def delete_hyperedges(file_path, percentage=0.08):
+    total_hyperedges = len(hypergraph.hyperedges)
+    del_hyperedges = int(percentage * total_hyperedges)
+    hyperedges_to_remove = find_top_n_weighted_hyperedges(file_path, del_hyperedges)
+    for he in hyperedges_to_remove:
+        hypergraph.remove_hyperedge(he)
+
+def write_hypergraph_stats(file_path, iteration):
+    with open(file_path, 'w') as file:
+        file.write(f"Number of reactions or hyperedges: {len(hypergraph.hyperedges)}\n")
+        file.write(f"Number of nodes or metabolites: {len(hypergraph.nodes)}\n")
+        connected = hypergraph.check_weak_connectivity()
+        file.write("The hypergraph is weakly connected:\n" if connected else "The hypergraph is not weakly connected.\n")
+        components = hypergraph.connected_components()
+        file.write(f"Connected Components: {components}\n")
+        file.write(f"No. of modules: {len(components)}\n")
+        # # Listing all hyperedges
+        file.write("\nList of all hyperedges:\n")
+        for hyperedge_id, edge_data in hypergraph.hyperedges.items():
+            file.write(f"Hyperedge ID: {hyperedge_id}, Hyperedge: {edge_data}\n")
+
+def update_orc_and_weights_iter0(distance_matrix, iteration, file_format='csv'):
+    file_name = f'dataset_networkscience_ORC_weights_iteration_{iteration}.{file_format}'
+    
+    with open(file_name, 'a', newline='') as file:
+        if file_format == 'csv':
+            writer = csv.writer(file)
+            # Check if the file is empty to write headers
+            if file.tell() == 0:
+                writer.writerow(['Hyperedge ID', 'ORC', 'Weight'])
+            
+            for hyperedge_id in hypergraph.hyperedges:
+                orc = hypergraph.earthmover_distance_hyperedge_combinations(hyperedge_id, distance_matrix)
+                hypergraph.add_ricci_curvature(hyperedge_id, orc)
+                weight = hypergraph.weights[hyperedge_id][-1]
+                if weight != 0:
+                    weight = weight * (1 - orc)
+                    normalized_weight = adjusted_sigmoid_0_to_1(weight)
+                else:
+                    normalized_weight == 0
+
+                hypergraph.add_weights(hyperedge_id, normalized_weight)
+                
+                writer.writerow([hyperedge_id, orc, normalized_weight])
+
     
 # TODO: Add a main() function  
 #Add the data file here
@@ -577,75 +645,9 @@ print(f"Max Degree: {max_degree}")
 print(f"Min Degree: {min_degree}")
 print(f"Average Degree: {avg_degree:.2f}")
 
+quit()
 
-def find_top_n_weighted_hyperedges(file_path, n):
-
-        # Load the CSV file
-        df = pd.read_csv(file_path)
-
-        # Sort the DataFrame based on the 'Weight' column in descending order
-        df_sorted = df.sort_values(by='Weight', ascending=False)
-
-        # Select the top n rows and only the 'Hyperedge ID' column
-        top_n_hyperedges_ids = df_sorted.head(n)['Hyperedge ID'].tolist()
-
-        # Select the top n rows
-        top_n_hyperedges = df_sorted.head(n)
-
-        return top_n_hyperedges_ids
-
-
-def save_and_update(distance_matrix, iteration):
-        filename = f'distance_matrix_normalized_weights_{iteration}.csv'
-        save_matrix_csv(distance_matrix, filename)
-        update_orc_and_weights_iter(distance_matrix, iteration)
-
-
-def delete_hyperedges(file_path, percentage=0.08):
-        total_hyperedges = len(hypergraph.hyperedges)
-        del_hyperedges = int(percentage * total_hyperedges)
-        hyperedges_to_remove = find_top_n_weighted_hyperedges(file_path, del_hyperedges)
-        for he in hyperedges_to_remove:
-            hypergraph.remove_hyperedge(he)
-
-def write_hypergraph_stats(file_path, iteration):
-        with open(file_path, 'w') as file:
-            file.write(f"Number of reactions or hyperedges: {len(hypergraph.hyperedges)}\n")
-            file.write(f"Number of nodes or metabolites: {len(hypergraph.nodes)}\n")
-            connected = hypergraph.check_weak_connectivity()
-            file.write("The hypergraph is weakly connected:\n" if connected else "The hypergraph is not weakly connected.\n")
-            components = hypergraph.connected_components()
-            file.write(f"Connected Components: {components}\n")
-            file.write(f"No. of modules: {len(components)}\n")
-            # # Listing all hyperedges
-            file.write("\nList of all hyperedges:\n")
-            for hyperedge_id, edge_data in hypergraph.hyperedges.items():
-                file.write(f"Hyperedge ID: {hyperedge_id}, Hyperedge: {edge_data}\n")
-
-def update_orc_and_weights_iter0(distance_matrix, iteration, file_format='csv'):
-        file_name = f'dataset_networkscience_ORC_weights_iteration_{iteration}.{file_format}'
-        
-        with open(file_name, 'a', newline='') as file:
-            if file_format == 'csv':
-                writer = csv.writer(file)
-                # Check if the file is empty to write headers
-                if file.tell() == 0:
-                    writer.writerow(['Hyperedge ID', 'ORC', 'Weight'])
-                
-                for hyperedge_id in hypergraph.hyperedges:
-                    orc = hypergraph.earthmover_distance_hyperedge_combinations(hyperedge_id, distance_matrix)
-                    hypergraph.add_ricci_curvature(hyperedge_id, orc)
-                    weight = hypergraph.weights[hyperedge_id][-1]
-                    if weight != 0:
-                        weight = weight * (1 - orc)
-                        normalized_weight = adjusted_sigmoid_0_to_1(weight)
-                    else:
-                        normalized_weight == 0
-
-                    hypergraph.add_weights(hyperedge_id, normalized_weight)
-                    
-                    writer.writerow([hyperedge_id, orc, normalized_weight])
-
+#TODO: Why isn't this floyd_warshall?
 distance_matrix = hypergraph.calculate_distance_matrix()
 
 update_orc_and_weights_iter0(distance_matrix,iteration=0)
