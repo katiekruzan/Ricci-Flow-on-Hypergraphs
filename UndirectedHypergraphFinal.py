@@ -1,6 +1,6 @@
 from collections import deque
 from itertools import permutations, combinations
-from gurobipy import Model, GRB, quicksum
+# from gurobipy import Model, GRB, quicksum
 import time
 import requests
 import json
@@ -387,7 +387,7 @@ class UndirectedHypergraph:
             return None
 
 
-    def check_weak_connectivity(self):
+    def check_weak_connectivity(self) -> bool:
         """
         Check if the hypergraph is weakly connected.
         A hypergraph is weakly connected if there is a path between any pair of nodes.
@@ -504,21 +504,11 @@ def save_matrix_csv(matrix, filename:str) -> None:
 
 def load_matrix_csv(filename:str) -> np.ndarray:
     '''Get the matrix from a local csv'''
-    return pd.read_csv(filename, header=None).values         
-    
-# TODO: Add a main() function  
-#Add the data file here
-#TODO: describe how the dataframe needs to look
-df = pd.read_csv('/Users/Undirected Hypergraph/dataset_turingpapers_clean.csv')  
-hypergraph = UndirectedHypergraph()
-hypergraph.build_from_dataframe(df)
+    return pd.read_csv(filename, header=None).values 
 
-print(len(hypergraph.nodes))
-print(len(hypergraph.hyperedges))
-
-print(hypergraph.check_weak_connectivity())
-
-def calculate_degrees(hypergraph):
+def calculate_degrees(hypergraph:UndirectedHypergraph):
+    '''Return the max degree, min degree, and average degree values
+    '''
     degrees = {}
     
     # Iterate over each node in the hypergraph
@@ -537,6 +527,49 @@ def calculate_degrees(hypergraph):
     
     return max_degree, min_degree, avg_degree
 
+def adjusted_sigmoid_0_to_1(x):
+    # Clip x to a range that prevents overflow in exp.
+    # The range of -709 to 709 is chosen based on the practical limits of np.exp()
+    x_clipped = np.clip(x, -709, 709)
+    a, b = 0, 1  # Define the target range
+    return a + (b - a) / (1 + np.exp(-x_clipped))
+
+def update_orc_and_weights_iter(distance_matrix, iteration, file_format='csv'):
+    #TODO: seems hardcoded
+    file_name = f'dataset_networkscience_normalized_weights_data_iteration_{iteration}.{file_format}'
+
+    with open(file_name, 'a', newline='') as file:
+        if file_format == 'csv':
+            writer = csv.writer(file)
+            # Check if the file is empty to write headers
+            if file.tell() == 0:
+                writer.writerow(['Hyperedge ID', 'ORC', 'Weight'])
+            for hyperedge_id in hypergraph.hyperedges:
+                orc = hypergraph.earthmover_distance_hyperedge_combinations(hyperedge_id, distance_matrix)
+                hypergraph.add_ricci_curvature(hyperedge_id, orc)
+                weight = hypergraph.weights[hyperedge_id][-1]
+                if weight != 0:
+                    weight = weight * (1 - orc)
+                    normalized_weight = adjusted_sigmoid_0_to_1(weight)
+                else:
+                    normalized_weight = 0
+                hypergraph.add_weights(hyperedge_id, normalized_weight)
+                writer.writerow([hyperedge_id, orc, normalized_weight])
+      
+    
+# TODO: Add a main() function  
+#Add the data file here
+#TODO: describe how the dataframe needs to look
+#TODO: Do we need a specific file for this? How to find//generate?
+df = pd.read_csv('inputfiles/cited_dataset_weak_connected.csv')  
+hypergraph = UndirectedHypergraph()
+hypergraph.build_from_dataframe(df)
+
+print("Number of papers or hypergedges:",len(hypergraph.hyperedges)) #Printing the number of hyperedges or papers in our network.
+print("Number of authors or nodes",len(hypergraph.nodes)) #Printing the number of nodes or authors in the network.
+connected = hypergraph.check_weak_connectivity()
+print("The hypergraph is weakly connected:" if connected else "The hypergraph is not weakly connected.")
+
 # Example usage:
 # Assuming 'hypergraph' is an instance of UndirectedHypergraph
 max_degree, min_degree, avg_degree = calculate_degrees(hypergraph)
@@ -544,39 +577,6 @@ print(f"Max Degree: {max_degree}")
 print(f"Min Degree: {min_degree}")
 print(f"Average Degree: {avg_degree:.2f}")
 
-
-def adjusted_sigmoid_0_to_1(x):
-    # Clip x to a range that prevents overflow in exp.
-    # The range of -709 to 709 is chosen based on the practical limits of np.exp()
-        x_clipped = np.clip(x, -709, 709)
-        a, b = 0, 1  # Define the target range
-        return a + (b - a) / (1 + np.exp(-x_clipped))
-
-def update_orc_and_weights_iter(distance_matrix, iteration, file_format='csv'):
-        file_name = f'dataset_networkscience_normalized_weights_data_iteration_{iteration}.{file_format}'
-
-        with open(file_name, 'a', newline='') as file:
-            if file_format == 'csv':
-                writer = csv.writer(file)
-                # Check if the file is empty to write headers
-                if file.tell() == 0:
-                    writer.writerow(['Hyperedge ID', 'ORC', 'Weight'])
-
-                for hyperedge_id in hypergraph.hyperedges:
-                    orc = hypergraph.earthmover_distance_hyperedge_combinations(hyperedge_id, distance_matrix)
-                    hypergraph.add_ricci_curvature(hyperedge_id, orc)
-                    weight = hypergraph.weights[hyperedge_id][-1]
-                    if weight != 0:
-                        
-                        weight = weight * (1 - orc)
-                        normalized_weight = adjusted_sigmoid_0_to_1(weight)
-                    else:
-                        normalized_weight = 0
-
-
-                    hypergraph.add_weights(hyperedge_id, normalized_weight)
-
-                    writer.writerow([hyperedge_id, orc, normalized_weight])
 
 def find_top_n_weighted_hyperedges(file_path, n):
 
