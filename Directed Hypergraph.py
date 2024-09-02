@@ -18,11 +18,11 @@ class DirectedHypergraph:
         self.nodes = set() # arbitrary, not defined type as of now.
         self.hyperedges = {} # dict of ids to (tail, head) sets
         self.enzymes = {}  # Dictionary to store enzymes associated with hyperedges
-        self.weights = {} # dict that had hyperedge ids to weights
+        self.weights = {} # dict that had hyperedge ids to weights. Should be a list of weights
         self.ricci_curvature = {}
 
 
-    def add_node(self, node:any):
+    def add_node(self, node:any) -> None:
         '''Function to add a node to the hypergraph. The type is not set'''
         self.nodes.add(node)
 
