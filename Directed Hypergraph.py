@@ -708,9 +708,6 @@ if __name__ == "__main__":
     print("The hypergraph is weakly connected:" if connected else "The hypergraph is not weakly connected.")
     strongly_connected = hypergraph.is_strongly_connected()
     print("The hypergraph is strongly connected." if strongly_connected else "The hypergraph is not strongly connected.")
-    #TODO: find greedy_enzyme_set_cover
-    # min_enzymes = hypergraph.greedy_enzyme_set_cover()
-    # print("Minimum set of enzymes to cover all hyperedges:", min_enzymes)
 
     # Call the functions
     avg_degree = hypergraph.average_degree()
