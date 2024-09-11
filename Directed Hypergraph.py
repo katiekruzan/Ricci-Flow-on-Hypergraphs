@@ -178,7 +178,7 @@ class DirectedHypergraph:
                 if dist[i][j] == float('inf'):
                     dist[i][j] = 0               
 
-        return dist
+        return dist  
 
     
     def find_shortest_distance(self, start, end, max_hops = 3) -> int:
@@ -523,15 +523,15 @@ class DirectedHypergraph:
     def calculate_distance_matrix(self):
         ''' Get the shortest distances in a matrix
             Will return a [[int]].
-            
             TODO: There is a world this will run waaaay longer than it needs to.
             '''
-        n = len(self.nodes)
-        distance_matrix = [[0 for _ in range(n)] for _ in range(n)]
-        for i, node1 in enumerate(self.nodes):
-            for j, node2 in enumerate(self.nodes):
-                distance_matrix[i][j] = self.find_shortest_distance(node1, node2)
-        return distance_matrix
+        # n = len(self.nodes)
+        # distance_matrix = [[0 for _ in range(n)] for _ in range(n)]
+        # for i, node1 in enumerate(self.nodes):
+        #     for j, node2 in enumerate(self.nodes):
+        #         distance_matrix[i][j] = self.find_shortest_distance(node1, node2)
+        # return distance_matrix
+        return self.floyd_warshall_with_weights()
 
     
     def get_connected_components(self):
@@ -702,6 +702,7 @@ if __name__ == "__main__":
     #     print(f"Hyperedge {hyperedge_id} has these tail set and head set: {hyperedge}")
         
 
+    '''
     print("Number of reactions or hypergedges:",len(hypergraph.hyperedges)) #Printing the number of hyperedges or reactions in our network.
     print("Number of nodes or metabolites",len(hypergraph.nodes)) #Printing the number of nodes or 'metabolites' in the network.
     connected = hypergraph.is_weakly_connected()
@@ -718,12 +719,13 @@ if __name__ == "__main__":
     print("Average Degree (In, Out):", avg_degree)
     print("Lowest Degree (In, Out):", lowest_degree)
     print("Highest Degree (In, Out):", highest_degree)
+    '''
     
     #Ricci Flow with Surgery script
-    #TODO: is there a reason we're not using Floyd-Warshall here?
     # TODO: for GUI, will probably need some sort of progress bar for this one.
     distance_matrix = hypergraph.calculate_distance_matrix()
-    print(distance_matrix)
+    
+    save_matrix_csv(distance_matrix, 'testing_with_FW.csv')
     quit()
     #save_matrix_csv(distance_matrix,'synechocystis_iter_0_distance_matrix.csv')
     #loaded_matrix = load_matrix_csv('methanosarcina_iter_0_distance_matrix.csv')
