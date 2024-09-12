@@ -173,12 +173,13 @@ class UndirectedHypergraph:
         return 0  # Return 3 if no path is found within the limit
     
     def calculate_distance_matrix(self):
-        n = len(self.nodes)
-        distance_matrix = [[0 for _ in range(n)] for _ in range(n)]
-        for i, node1 in enumerate(self.nodes):
-            for j, node2 in enumerate(self.nodes):
-                distance_matrix[i][j] = self.find_shortest_distance(node1, node2)
-        return distance_matrix
+        # n = len(self.nodes)
+        # distance_matrix = [[0 for _ in range(n)] for _ in range(n)]
+        # for i, node1 in enumerate(self.nodes):
+        #     for j, node2 in enumerate(self.nodes):
+        #         distance_matrix[i][j] = self.find_shortest_distance(node1, node2)
+        # return distance_matrix
+        return self.floyd_warshall()
     
     def diameter(self,hyperedge_id):
         hyperedge = self.hyperedges[hyperedge_id]
@@ -625,43 +626,44 @@ def update_orc_and_weights_iter0(distance_matrix, iteration, file_format='csv'):
                 
                 writer.writerow([hyperedge_id, orc, normalized_weight])
 
+
+if __name__ == "__main__": 
+    #Add the data file here
+    #TODO: describe how the dataframe needs to look
+    df = pd.read_csv('inputfiles/dataset_turingpapers_clean.csv')  
+    hypergraph = UndirectedHypergraph()
+    hypergraph.build_from_dataframe(df)
+
+    print("Number of papers or hypergedges:",len(hypergraph.hyperedges)) #Printing the number of hyperedges or papers in our network.
+    print("Number of authors or nodes",len(hypergraph.nodes)) #Printing the number of nodes or authors in the network.
+    connected = hypergraph.check_weak_connectivity()
+    print("The hypergraph is weakly connected:" if connected else "The hypergraph is not weakly connected.")
+
+    # Example usage:
+    # Assuming 'hypergraph' is an instance of UndirectedHypergraph
+    max_degree, min_degree, avg_degree = calculate_degrees(hypergraph)
+    print(f"Max Degree: {max_degree}")
+    print(f"Min Degree: {min_degree}")
+    print(f"Average Degree: {avg_degree:.2f}")
+
+    #TODO: Why isn't this floyd_warshall? We can do with floyd warshall
+    distance_matrix = hypergraph.calculate_distance_matrix()
+    save_matrix_csv(distance_matrix, 'inputfiles/undirected_testing_fw.csv')
     
-# TODO: Add a main() function  
-#Add the data file here
-#TODO: describe how the dataframe needs to look
-df = pd.read_csv('inputfiles/dataset_turingpapers_clean.csv')  
-hypergraph = UndirectedHypergraph()
-hypergraph.build_from_dataframe(df)
+    quit()
 
-print("Number of papers or hypergedges:",len(hypergraph.hyperedges)) #Printing the number of hyperedges or papers in our network.
-print("Number of authors or nodes",len(hypergraph.nodes)) #Printing the number of nodes or authors in the network.
-connected = hypergraph.check_weak_connectivity()
-print("The hypergraph is weakly connected:" if connected else "The hypergraph is not weakly connected.")
+    update_orc_and_weights_iter0(distance_matrix,iteration=0)
 
-# Example usage:
-# Assuming 'hypergraph' is an instance of UndirectedHypergraph
-max_degree, min_degree, avg_degree = calculate_degrees(hypergraph)
-print(f"Max Degree: {max_degree}")
-print(f"Min Degree: {min_degree}")
-print(f"Average Degree: {avg_degree:.2f}")
+    total_iterations = 40
+    for i in range(1, total_iterations + 1):
+        distance_matrix_i = hypergraph.floyd_warshall()
+        save_and_update(distance_matrix_i, i)
 
-quit()
-
-#TODO: Why isn't this floyd_warshall?
-distance_matrix = hypergraph.calculate_distance_matrix()
-
-update_orc_and_weights_iter0(distance_matrix,iteration=0)
-
-total_iterations = 40
-for i in range(1, total_iterations + 1):
-    distance_matrix_i = hypergraph.floyd_warshall()
-    save_and_update(distance_matrix_i, i)
-
-    if i % 2 == 0:
-        file_path = f'dataset_networkscience_normalized_weights_data_iteration_{i}.csv'
-        delete_hyperedges(file_path)
-        stats_file_path = f'/Users//networkscience_8percentsurgery_RF_normalized{i // 2}.txt'
-        write_hypergraph_stats(stats_file_path, i)
+        if i % 2 == 0:
+            file_path = f'dataset_networkscience_normalized_weights_data_iteration_{i}.csv'
+            delete_hyperedges(file_path)
+            stats_file_path = f'/Users//networkscience_8percentsurgery_RF_normalized{i // 2}.txt'
+            write_hypergraph_stats(stats_file_path, i)
 
 
 
