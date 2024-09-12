@@ -55,8 +55,7 @@ class DirectedHypergraph:
         '''Function to get the edges from the hyperedges.
             Extract all edges from the hyperedges. 
             These are all possible connections (aka turn hypergraph into simple graph)
-            TODO: Ask if this will effect anything if two nodes are connected in multiple edges? This is not capturing that, but is that okay?
-            '''
+        '''
         edges = set()
         for tail_set, head_set in self.hyperedges.values():
             for tail in tail_set:
@@ -436,9 +435,9 @@ class DirectedHypergraph:
     
     def is_strongly_connected(self)-> bool:
         '''Function to check if the Hypergraph is strongly connected. 
-        TODO: add the definition of strongly connected here
-        Seems to be that you can get from every node to every other.
-        Also, this is checking if you can get there in 3 hops.
+        Strongly connected means we can get from any node to any other node.
+        If strongly connected, will take a LONG time to test. 
+        # TODO: a different implementation with FW
         '''
         for node1 in self.nodes:
             for node2 in self.nodes:
@@ -523,7 +522,6 @@ class DirectedHypergraph:
     def calculate_distance_matrix(self):
         ''' Get the shortest distances in a matrix
             Will return a [[int]].
-            TODO: There is a world this will run waaaay longer than it needs to.
             '''
         # n = len(self.nodes)
         # distance_matrix = [[0 for _ in range(n)] for _ in range(n)]
@@ -702,14 +700,17 @@ if __name__ == "__main__":
     #     print(f"Hyperedge {hyperedge_id} has these tail set and head set: {hyperedge}")
         
 
-    '''
+    
     print("Number of reactions or hypergedges:",len(hypergraph.hyperedges)) #Printing the number of hyperedges or reactions in our network.
     print("Number of nodes or metabolites",len(hypergraph.nodes)) #Printing the number of nodes or 'metabolites' in the network.
+    # our test set is weakly connected
     connected = hypergraph.is_weakly_connected()
     print("The hypergraph is weakly connected:" if connected else "The hypergraph is not weakly connected.")
-    strongly_connected = hypergraph.is_strongly_connected()
+    # our test set is not strongly connected
+    strongly_connected = hypergraph.is_strongly_connected() 
     print("The hypergraph is strongly connected." if strongly_connected else "The hypergraph is not strongly connected.")
-
+    
+    '''
     # Call the functions
     avg_degree = hypergraph.average_degree()
     lowest_degree = hypergraph.lowest_degree()
@@ -725,7 +726,7 @@ if __name__ == "__main__":
     # TODO: for GUI, will probably need some sort of progress bar for this one.
     distance_matrix = hypergraph.calculate_distance_matrix()
     
-    save_matrix_csv(distance_matrix, 'testing_with_FW.csv')
+    save_matrix_csv(distance_matrix, 'inputfiles/testing_with_FW.csv')
     quit()
     #save_matrix_csv(distance_matrix,'synechocystis_iter_0_distance_matrix.csv')
     #loaded_matrix = load_matrix_csv('methanosarcina_iter_0_distance_matrix.csv')
