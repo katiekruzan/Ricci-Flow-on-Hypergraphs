@@ -262,6 +262,7 @@ class UndirectedHypergraph:
         
         return found_hyperedges
     
+    #TODO: make having Gurobi liscense an option
     def earthmover_distance_gurobi_distance_matrix(self, node_A, node_B, distance_matrix):
         if node_A not in self.nodes or node_B not in self.nodes:
             print(f"Node {node_A} or {node_B} does not exist in the hypergraph.")
@@ -628,8 +629,7 @@ def update_orc_and_weights_iter0(distance_matrix, iteration, file_format='csv'):
 # TODO: Add a main() function  
 #Add the data file here
 #TODO: describe how the dataframe needs to look
-#TODO: Do we need a specific file for this? How to find//generate?
-df = pd.read_csv('inputfiles/cited_dataset_weak_connected.csv')  
+df = pd.read_csv('inputfiles/dataset_turingpapers_clean.csv')  
 hypergraph = UndirectedHypergraph()
 hypergraph.build_from_dataframe(df)
 
