@@ -99,6 +99,7 @@ class UndirectedHypergraph:
         return neighbours
 
     def floyd_warshall(self):
+        #TODO: we have to get the max distance being 3 to be added in there. Q: Why is this there?
         node_list = list(self.nodes)
         index = {node: idx for idx, node in enumerate(node_list)}
         n = len(node_list)
