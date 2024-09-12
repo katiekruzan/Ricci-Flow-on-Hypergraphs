@@ -725,9 +725,10 @@ if __name__ == "__main__":
     #Ricci Flow with Surgery script
     # TODO: for GUI, will probably need some sort of progress bar for this one.
     distance_matrix = hypergraph.calculate_distance_matrix()
-    
     save_matrix_csv(distance_matrix, 'inputfiles/testing_with_FW.csv')
     quit()
+    
+    #TODO: Ask Prith what's going on here. Is this where we're wanting to put the targeted flow?
     #save_matrix_csv(distance_matrix,'synechocystis_iter_0_distance_matrix.csv')
     #loaded_matrix = load_matrix_csv('methanosarcina_iter_0_distance_matrix.csv')
     update_orc_and_weights_iter0(distance_matrix,iteration=0)

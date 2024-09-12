@@ -647,12 +647,12 @@ if __name__ == "__main__":
     print(f"Min Degree: {min_degree}")
     print(f"Average Degree: {avg_degree:.2f}")
 
-    #TODO: Why isn't this floyd_warshall? We can do with floyd warshall
     distance_matrix = hypergraph.calculate_distance_matrix()
     save_matrix_csv(distance_matrix, 'inputfiles/undirected_testing_fw.csv')
     
     quit()
 
+    #TODO: Ask Prith what's going on here. Is this where we're wanting to put the targeted flow?
     update_orc_and_weights_iter0(distance_matrix,iteration=0)
 
     total_iterations = 40
