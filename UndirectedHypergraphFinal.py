@@ -183,20 +183,6 @@ class UndirectedHypergraph:
         # return distance_matrix
         return self.floyd_warshall()
     
-    def diameter(self,hyperedge_id):
-        # This makes no sense. This should be 0 always. Will delete.
-        # TODO: delete
-        hyperedge = self.hyperedges[hyperedge_id]
-        diameter = 0
-        for node1 in hyperedge:
-            for node2 in hyperedge:
-                if node1 != node2:
-                    diam = self.find_shortest_distance(node1,node2)
-                    if diam > diameter:
-                        diameter = diam
-        
-        return diameter
-    
 
     def node_probability(self, node):
         alpha = 0.1  # Self-transition probability factor
@@ -286,10 +272,10 @@ class UndirectedHypergraph:
         distribution2 = [mu_B[node] for node in nodes_B]
     
         # Print the distributions to verify correctness
-        print("Nodes in mu_A:", nodes_A)
-        print("Nodes in mu_B:", nodes_B)
-        print("Distribution mu_A:", distribution1)
-        print("Distribution mu_B:", distribution2)
+        # print("Nodes in mu_A:", nodes_A)
+        # print("Nodes in mu_B:", nodes_B)
+        # print("Distribution mu_A:", distribution1)
+        # print("Distribution mu_B:", distribution2)
 
         # Check if distributions sum to the same value
         total_mass_A = sum(distribution1)
@@ -591,9 +577,14 @@ def update_orc_and_weights_iter0(distance_matrix, iteration, file_format='csv'):
                 writer.writerow(['Hyperedge ID', 'ORC', 'Weight'])
             
             for hyperedge_id in hypergraph.hyperedges:
+                print(hyperedge_id)
                 orc = hypergraph.earthmover_distance_hyperedge_combinations(hyperedge_id, distance_matrix)
+                print(orc)
+                quit()
                 hypergraph.add_ricci_curvature(hyperedge_id, orc)
                 weight = hypergraph.weights[hyperedge_id][-1]
+                print(weight)
+                
                 if weight != 0:
                     weight = weight * (1 - orc)
                     normalized_weight = adjusted_sigmoid_0_to_1(weight)
@@ -627,10 +618,12 @@ if __name__ == "__main__":
     distance_matrix = hypergraph.calculate_distance_matrix()
     save_matrix_csv(distance_matrix, 'outputfiles/undirected_testing_fw.csv')
     
-    quit()
+    print('starting ricci curvature')
 
     #TODO: Same idea as in the directed Hypergraph script
     update_orc_and_weights_iter0(distance_matrix,iteration=0)
+    
+    quit()
 
     total_iterations = 40
     for i in range(1, total_iterations + 1):
