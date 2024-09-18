@@ -65,13 +65,14 @@ class UndirectedHypergraph:
             author_ids = ast.literal_eval(row['author_ids'])
             self.add_hyperedge(paper_id, author_ids)
 
-    def get_authors_by_paper_id(self, paper_id):
-        '''Retrieve authors for a given paper_id'''
-        if paper_id in self.hyperedges:
-            return self.hyperedges[paper_id]
-        else:
-            return "No hyperedge found for the given paper_id."
-        
+    # Not used anywhere else
+    # def get_authors_by_paper_id(self, paper_id):
+    #     '''Retrieve authors for a given paper_id'''
+    #     if paper_id in self.hyperedges:
+    #         return self.hyperedges[paper_id]
+    #     else:
+    #         return "No hyperedge found for the given paper_id."
+    
 
     def node_degree(self, node):
         """Calculate the degree of a node. Degree is the number of hyperedges containing this node."""
@@ -183,6 +184,8 @@ class UndirectedHypergraph:
         return self.floyd_warshall()
     
     def diameter(self,hyperedge_id):
+        # This makes no sense. This should be 0 always. Will delete.
+        # TODO: delete
         hyperedge = self.hyperedges[hyperedge_id]
         diameter = 0
         for node1 in hyperedge:
@@ -193,6 +196,7 @@ class UndirectedHypergraph:
                         diameter = diam
         
         return diameter
+    
 
     def node_probability(self, node):
         alpha = 0.1  # Self-transition probability factor
@@ -470,45 +474,18 @@ class UndirectedHypergraph:
             print(f"Removed hyperedge {hyperedge_id} and isolated nodes {nodes_to_remove}")
         else:
             print(f"Hyperedge ID {hyperedge_id} not found.")
-    
-    '''
-    def max_degree(self):
-        max_degree = 0
-        for node in self.nodes:
-                degree = self.node_degree(node)
+            
 
-                if degree > max_degree:
-                    max_degree = degree
-                
-        return max_degree
-    
-    def min_degree(self):
-        min_degree = 0
-        for node in self.nodes:
-            degree = self.node_degree(node)
-
-            if degree < min_degree:
-                min_degree = degree
-
-        return min_degree
-    
-    def avg_degree(self):
-        total_degree = 0
-        for node in self.nodes:
-            degree =self.node_degree(node)
-            total_degree+=degree
-        
-        average_degree = total_degree / len(self.nodes)
-        return average_degree
-    '''
 
 def save_matrix_csv(matrix, filename:str) -> None:
     '''Function to save the matrix as a CSV file'''    
     pd.DataFrame(matrix).to_csv(filename, index=False, header=False)
 
+
 def load_matrix_csv(filename:str) -> np.ndarray:
     '''Get the matrix from a local csv'''
     return pd.read_csv(filename, header=None).values 
+
 
 def calculate_degrees(hypergraph:UndirectedHypergraph):
     '''Return the max degree, min degree, and average degree values
@@ -648,7 +625,7 @@ if __name__ == "__main__":
     print(f"Average Degree: {avg_degree:.2f}")
 
     distance_matrix = hypergraph.calculate_distance_matrix()
-    save_matrix_csv(distance_matrix, 'inputfiles/undirected_testing_fw.csv')
+    save_matrix_csv(distance_matrix, 'outputfiles/undirected_testing_fw.csv')
     
     quit()
 
