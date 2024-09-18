@@ -580,7 +580,7 @@ def adjusted_sigmoid_0_to_1(x):
 
 
 def update_orc_and_weights_iter(distance_matrix, iteration, file_format='csv'):
-    #TODO: This seems hardcoded
+    #TODO: This seems hardcoded (doesn't matter really. just an output file)
     file_name = f'methanosarcina_normalized_weights_data_iteration_{iteration}.{file_format}' #Name this file corresponding to the metabolic network
     
     with open(file_name, 'a', newline='') as file:
@@ -596,6 +596,7 @@ def update_orc_and_weights_iter(distance_matrix, iteration, file_format='csv'):
                 if weight != 0:
                     orc = 1 - (emd/weight)
                     hypergraph.add_ricci_curvature(hyperedge_id, orc)
+                    # TODO : where the weights are being updated now - Where the new weights need to be updated
                     weight = weight * (1 - orc)
                     normalized_weight = adjusted_sigmoid_0_to_1(weight)
                 else:
@@ -611,7 +612,7 @@ def update_orc_and_weights_iter(distance_matrix, iteration, file_format='csv'):
                 
 #Function to calculate ORC for the 0th iteration
 def update_orc_and_weights_iter0(distance_matrix, iteration, file_format='csv'):
-    #TODO: Also seems hardcoded
+    #TODO: Also seems hardcoded - doesn't matter too much, just an output file
     file_name = f'methanosarcina_ORC_weights_iteration_{iteration}.{file_format}'
     
     with open(file_name, 'a', newline='') as file:
@@ -689,6 +690,7 @@ def write_hypergraph_stats(file_path, iteration):
 if __name__ == "__main__":
     hypergraph = DirectedHypergraph()
     #TODO: We need to see what the JSON file needs to look like
+    # TODO: Do the work to see what info is needed in the JSON, but basically say its from XYZ website
     hypergraph.import_reactions('inputfiles/iJN678.json')  # Replace with the actual file path. We get these json files from BiGG Models.
    
     # print(hypergraph.enzymes.items())
@@ -728,7 +730,8 @@ if __name__ == "__main__":
     save_matrix_csv(distance_matrix, 'inputfiles/testing_with_FW.csv')
     quit()
     
-    #TODO: Ask Prith what's going on here. Is this where we're wanting to put the targeted flow?
+    # TODO: Note, here is the surgery. We will probably keep this, this is when you take things out to find the top modules. 
+    # Actually, we probably won't do surgery for the targeted hypergraph idea
     #save_matrix_csv(distance_matrix,'synechocystis_iter_0_distance_matrix.csv')
     #loaded_matrix = load_matrix_csv('methanosarcina_iter_0_distance_matrix.csv')
     update_orc_and_weights_iter0(distance_matrix,iteration=0)

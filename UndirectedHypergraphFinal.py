@@ -99,7 +99,7 @@ class UndirectedHypergraph:
         return neighbours
 
     def floyd_warshall(self):
-        #TODO: we have to get the max distance being 3 to be added in there. Q: Why is this there?
+        # We only care about the things that are 3 apart. But we will go ahead and keep floyd warshall the same here
         node_list = list(self.nodes)
         index = {node: idx for idx, node in enumerate(node_list)}
         n = len(node_list)
@@ -539,7 +539,7 @@ def adjusted_sigmoid_0_to_1(x):
     return a + (b - a) / (1 + np.exp(-x_clipped))
 
 def update_orc_and_weights_iter(distance_matrix, iteration, file_format='csv'):
-    #TODO: seems hardcoded
+    #TODO: seems hardcoded - fix to juts an output file (actually this name is fine.)
     file_name = f'dataset_networkscience_normalized_weights_data_iteration_{iteration}.{file_format}'
 
     with open(file_name, 'a', newline='') as file:
@@ -652,7 +652,7 @@ if __name__ == "__main__":
     
     quit()
 
-    #TODO: Ask Prith what's going on here. Is this where we're wanting to put the targeted flow?
+    #TODO: Same idea as in the directed Hypergraph script
     update_orc_and_weights_iter0(distance_matrix,iteration=0)
 
     total_iterations = 40
