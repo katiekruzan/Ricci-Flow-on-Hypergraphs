@@ -21,7 +21,6 @@ class UndirectedHypergraph:
     def add_node(self,node:any) -> None:
         '''Function to add a node to the hypergraph'''
         self.nodes.add(node)
-        # print(f"Node added: {node}")
 
     def add_hyperedge(self, hyperedge_id:str, nodes:list):
         """Add a hyperedge to the hypergraph. Automatically adds missing nodes."""
@@ -31,7 +30,7 @@ class UndirectedHypergraph:
         
         # Check if hyperedge already exists
         if hyperedge_id in self.hyperedges:
-            print(f"Hyperedge {hyperedge_id} already exists with nodes {self.hyperedges[hyperedge_id]}")
+            print(f"Hyperedge {hyperedge_id} was attempted to be added, but already exists with nodes {self.hyperedges[hyperedge_id]}")
             return
         # Add missing nodes to the node set
         for node in nodes:
@@ -41,7 +40,6 @@ class UndirectedHypergraph:
         # Add the hyperedge
         self.hyperedges[hyperedge_id] = nodes
         self.weights[hyperedge_id] = [1] #init the weights to 1
-        # print(f"Hyperedge {hyperedge_id} added with nodes {nodes}")
 
     def add_ricci_curvature(self, hyperedge_id:str, orc)-> None:
         '''Function to add ollivier ricci curvature for all hyperedges for every iteration.
@@ -234,7 +232,7 @@ class UndirectedHypergraph:
             nodes = [nodes]  # Convert single string node to a list
         '''
         nodes_set = set(nodes)  # Convert list to set for efficient intersection checks
-        #print(nodes_set)
+
         # Handle different types of inputs
         for node in nodes:
             if isinstance(node, (list, set, tuple)):  # If the input is any kind of collection
@@ -265,25 +263,18 @@ class UndirectedHypergraph:
         mu_B = self.node_probability(node_B)
 
         
-        # Convert distributions from dictionary to list format and print for debugging
+        # Convert distributions from dictionary to list format 
         nodes_A = sorted(mu_A.keys())
         nodes_B = sorted(mu_B.keys())
         distribution1 = [mu_A[node] for node in nodes_A]
         distribution2 = [mu_B[node] for node in nodes_B]
-    
-        # Print the distributions to verify correctness
-        # print("Nodes in mu_A:", nodes_A)
-        # print("Nodes in mu_B:", nodes_B)
-        # print("Distribution mu_A:", distribution1)
-        # print("Distribution mu_B:", distribution2)
 
         # Check if distributions sum to the same value
         total_mass_A = sum(distribution1)
         total_mass_B = sum(distribution2)
-        # print("Total mass in mu_A:", total_mass_A)
-        # print("Total mass in mu_B:", total_mass_B)
     
         if abs(total_mass_A - total_mass_B) > 1e-6:
+            # TODO: improve error message
             raise ValueError('The total mass of the distributions mu_A and mu_B are not equal. For')
         
 
@@ -317,29 +308,19 @@ class UndirectedHypergraph:
                 model.addConstr(quicksum(variables[x, y] for x in mu_A) == mu_B[y], f"dirt_filling_{y}")
 
             # Start the timer, solve the model, and calculate the time taken.
-            start_time = time.time()
             model.optimize()
-            end_time = time.time()
-
-            time_taken = end_time - start_time
 
             # Check the model status and process the results.
             if model.status == GRB.OPTIMAL:
                 total_cost = model.getObjective().getValue()
-                print("Total EMD Cost:", total_cost)
-                print("Time taken to find the optimal solution: {:.4f} seconds".format(time_taken))
-                # for x in mu_A:
-                #     for y in mu_B:
-                #         amount_moved = variables[x, y].X
-                        # if amount_moved > 0:
-                            # print(f"Move {amount_moved} from {x} to {y}")
                 return total_cost
             else:
-                print("No optimal solution found.")
+                #TODO: add more info for this error
+                print(f"No optimal solution found for nodes {node_A} and {node_B}")
                 return None
 
         except Exception as e:
-            print(f"Gurobi Error: {e}")
+            print(f"Gurobi Error: {e}\n for nodes {node_A} and {node_B}")
             return None
 
     def earthmover_distance_hyperedge_combinations(self, hyperedge_id, distance_matrix):
@@ -349,11 +330,11 @@ class UndirectedHypergraph:
         :return: The average EMD for all permutations of node pairs, or None if the hyperedge does not exist or has errors.
         """
         if hyperedge_id not in self.hyperedges:
-            print("Hyperedge does not exist.")
+            print(f"Hyperedge {hyperedge_id} does not exist.")
             return None
         
         nodes = self.hyperedges[hyperedge_id]
-        print(nodes)
+
         if len(nodes) < 2:
             return 1
         
@@ -369,14 +350,13 @@ class UndirectedHypergraph:
         if pair_count > 0:
             # Compute the average EMD
             average_emd = sum_emd /pair_count
-            print(f"Calculated EMD for hyperedge {hyperedge_id} considering all combinations: {average_emd}")
             weight = self.weights[hyperedge_id][-1]
             if weight == 0:
                 return 1 - average_emd
             else:
                 return 1 - average_emd/weight
         else:
-            print("No valid EMD computations were possible.")
+            print(f"No valid EMD computations were possible. For hyperedge {hyperedge_id}")
             return None
 
 
@@ -457,9 +437,8 @@ class UndirectedHypergraph:
 
             # Remove nodes that are not in any other hyperedge
             self.nodes.difference_update(nodes_to_remove)
-            print(f"Removed hyperedge {hyperedge_id} and isolated nodes {nodes_to_remove}")
         else:
-            print(f"Hyperedge ID {hyperedge_id} not found.")
+            print(f"Attempted to remove Hyperedge ID {hyperedge_id}, but was not found.")
             
 
 
@@ -577,12 +556,9 @@ def update_orc_and_weights_iter0(distance_matrix, iteration, file_format='csv'):
                 writer.writerow(['Hyperedge ID', 'ORC', 'Weight'])
             
             for hyperedge_id in hypergraph.hyperedges:
-                print(hyperedge_id)
                 orc = hypergraph.earthmover_distance_hyperedge_combinations(hyperedge_id, distance_matrix)
-                print(orc)
                 hypergraph.add_ricci_curvature(hyperedge_id, orc)
                 weight = hypergraph.weights[hyperedge_id][-1]
-                print(weight)
                 
                 if weight != 0:
                     weight = weight * (1 - orc)
