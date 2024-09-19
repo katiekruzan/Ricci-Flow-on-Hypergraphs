@@ -1,6 +1,6 @@
 from collections import deque
 from itertools import permutations, combinations
-# from gurobipy import Model, GRB, quicksum
+from gurobipy import Model, GRB, quicksum
 import time
 import requests
 import json
@@ -280,11 +280,11 @@ class UndirectedHypergraph:
         # Check if distributions sum to the same value
         total_mass_A = sum(distribution1)
         total_mass_B = sum(distribution2)
-        print("Total mass in mu_A:", total_mass_A)
-        print("Total mass in mu_B:", total_mass_B)
+        # print("Total mass in mu_A:", total_mass_A)
+        # print("Total mass in mu_B:", total_mass_B)
     
         if abs(total_mass_A - total_mass_B) > 1e-6:
-            raise ValueError('The total mass of the distributions mu_A and mu_B are not equal.')
+            raise ValueError('The total mass of the distributions mu_A and mu_B are not equal. For')
         
 
         # Create a mapping of nodes to their indices in the distance matrix.
@@ -328,11 +328,11 @@ class UndirectedHypergraph:
                 total_cost = model.getObjective().getValue()
                 print("Total EMD Cost:", total_cost)
                 print("Time taken to find the optimal solution: {:.4f} seconds".format(time_taken))
-                for x in mu_A:
-                    for y in mu_B:
-                        amount_moved = variables[x, y].X
-                        if amount_moved > 0:
-                            print(f"Move {amount_moved} from {x} to {y}")
+                # for x in mu_A:
+                #     for y in mu_B:
+                #         amount_moved = variables[x, y].X
+                        # if amount_moved > 0:
+                            # print(f"Move {amount_moved} from {x} to {y}")
                 return total_cost
             else:
                 print("No optimal solution found.")
@@ -580,7 +580,6 @@ def update_orc_and_weights_iter0(distance_matrix, iteration, file_format='csv'):
                 print(hyperedge_id)
                 orc = hypergraph.earthmover_distance_hyperedge_combinations(hyperedge_id, distance_matrix)
                 print(orc)
-                quit()
                 hypergraph.add_ricci_curvature(hyperedge_id, orc)
                 weight = hypergraph.weights[hyperedge_id][-1]
                 print(weight)
@@ -594,6 +593,7 @@ def update_orc_and_weights_iter0(distance_matrix, iteration, file_format='csv'):
                 hypergraph.add_weights(hyperedge_id, normalized_weight)
                 
                 writer.writerow([hyperedge_id, orc, normalized_weight])
+                # quit()
 
 
 if __name__ == "__main__": 
@@ -623,9 +623,9 @@ if __name__ == "__main__":
     #TODO: Same idea as in the directed Hypergraph script
     update_orc_and_weights_iter0(distance_matrix,iteration=0)
     
-    quit()
+    # quit()
 
-    total_iterations = 40
+    total_iterations = 5
     for i in range(1, total_iterations + 1):
         distance_matrix_i = hypergraph.floyd_warshall()
         save_and_update(distance_matrix_i, i)
