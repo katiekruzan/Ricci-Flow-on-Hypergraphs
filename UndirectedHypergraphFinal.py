@@ -325,7 +325,7 @@ class UndirectedHypergraph:
 
     def earthmover_distance_hyperedge_combinations(self, hyperedge_id, distance_matrix):
         """
-
+        This buddy gets the average EMD across the whole edge
         :param hyperedge_id: The identifier for the hyperedge.
         :return: The average EMD for all permutations of node pairs, or None if the hyperedge does not exist or has errors.
         """
@@ -599,17 +599,20 @@ if __name__ == "__main__":
     #TODO: Same idea as in the directed Hypergraph script
     update_orc_and_weights_iter0(distance_matrix,iteration=0)
     
+    print('Itteration 0 done')
+    
     # quit()
 
     total_iterations = 5
     for i in range(1, total_iterations + 1):
+        print('Working on itteration', i)
         distance_matrix_i = hypergraph.floyd_warshall()
         save_and_update(distance_matrix_i, i)
 
         if i % 2 == 0:
-            file_path = f'dataset_networkscience_normalized_weights_data_iteration_{i}.csv'
+            file_path = f'outputfiles/dataset_networkscience_normalized_weights_data_iteration_{i}.csv'
             delete_hyperedges(file_path)
-            stats_file_path = f'/Users//networkscience_8percentsurgery_RF_normalized{i // 2}.txt'
+            stats_file_path = f'outputfiles/networkscience_8percentsurgery_RF_normalized{i // 2}.txt'
             write_hypergraph_stats(stats_file_path, i)
 
 

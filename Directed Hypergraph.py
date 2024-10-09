@@ -172,6 +172,7 @@ class DirectedHypergraph:
                         dist[node_index[i]][node_index[j]] = dist[node_index[i]][node_index[k]] + dist[node_index[k]][node_index[j]]
 
          # Replace 'inf' with 0 for pairs of nodes that have no path between them
+         #TODO: Check if this is a good idea. Like probably? but also nodes have dist 0 to themselves
         for i in range(node_count):
             for j in range(node_count):
                 if dist[i][j] == float('inf'):
