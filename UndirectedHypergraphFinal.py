@@ -253,7 +253,7 @@ class UndirectedHypergraph:
         return found_hyperedges
     
     #TODO: make having Gurobi liscense an option
-    def earthmover_distance_gurobi_distance_matrix(self, node_A, node_B, distance_matrix):
+    def earthmover_distance_gurobi_distance_matrix(self, node_A, node_B, distance_matrix, verbose):
         if node_A not in self.nodes or node_B not in self.nodes:
             print(f"Node {node_A} or {node_B} does not exist in the hypergraph.")
             return None  # Return None if either node does not exist
@@ -295,6 +295,10 @@ class UndirectedHypergraph:
             #model.setParam('OutputFlag', 1)
             # Create variables for the linear program.
             variables = model.addVars(mu_A.keys(), mu_B.keys(), name="z", lb=0)
+            
+            # Should make it less verbose
+            if not verbose:
+                model.Params.LogToConsole = 0
 
             # Set the objective of the linear program to minimize the total cost.
             model.setObjective(quicksum(distance_matrix[node_to_index[x]][node_to_index[y]] * variables[x, y]
@@ -323,7 +327,7 @@ class UndirectedHypergraph:
             print(f"Gurobi Error: {e}\n for nodes {node_A} and {node_B}")
             return None
 
-    def earthmover_distance_hyperedge_combinations(self, hyperedge_id, distance_matrix):
+    def earthmover_distance_hyperedge_combinations(self, hyperedge_id, distance_matrix, verbose):
         """
         This buddy gets the average EMD across the whole edge
         :param hyperedge_id: The identifier for the hyperedge.
@@ -342,7 +346,7 @@ class UndirectedHypergraph:
         pair_count = 0
         # Generate all combinations of pairs of nodes
         for node_A, node_B in combinations(nodes, 2):
-            emd = self.earthmover_distance_gurobi_distance_matrix(node_A, node_B, distance_matrix)
+            emd = self.earthmover_distance_gurobi_distance_matrix(node_A, node_B, distance_matrix, verbose)
             if emd is not None:
                 sum_emd += emd
                 pair_count += 1
@@ -482,6 +486,7 @@ def adjusted_sigmoid_0_to_1(x):
 
 def update_orc_and_weights_iter(distance_matrix, iteration, file_format='csv'):
     #TODO: seems hardcoded - fix to juts an output file (actually this name is fine.)
+    #TODO: make an outputfile
     file_name = f'dataset_networkscience_normalized_weights_data_iteration_{iteration}.{file_format}'
 
     with open(file_name, 'a', newline='') as file:
@@ -519,6 +524,7 @@ def find_top_n_weighted_hyperedges(file_path, n):
     return top_n_hyperedges_ids
 
 def save_and_update(distance_matrix, iteration):
+    #TODO: make an outputfile
     filename = f'distance_matrix_normalized_weights_{iteration}.csv'
     save_matrix_csv(distance_matrix, filename)
     update_orc_and_weights_iter(distance_matrix, iteration)
@@ -532,6 +538,7 @@ def delete_hyperedges(file_path, percentage=0.08):
         hypergraph.remove_hyperedge(he)
 
 def write_hypergraph_stats(file_path, iteration):
+    #TODO: maybe add things about the itteration in what is written?
     with open(file_path, 'w') as file:
         file.write(f"Number of reactions or hyperedges: {len(hypergraph.hyperedges)}\n")
         file.write(f"Number of nodes or metabolites: {len(hypergraph.nodes)}\n")
@@ -545,7 +552,7 @@ def write_hypergraph_stats(file_path, iteration):
         for hyperedge_id, edge_data in hypergraph.hyperedges.items():
             file.write(f"Hyperedge ID: {hyperedge_id}, Hyperedge: {edge_data}\n")
 
-def update_orc_and_weights_iter0(distance_matrix, iteration, file_format='csv'):
+def update_orc_and_weights_iter0(distance_matrix, verbose, iteration, file_format='csv'):
     file_name = f'dataset_networkscience_ORC_weights_iteration_{iteration}.{file_format}'
     
     with open(file_name, 'a', newline='') as file:
@@ -556,7 +563,7 @@ def update_orc_and_weights_iter0(distance_matrix, iteration, file_format='csv'):
                 writer.writerow(['Hyperedge ID', 'ORC', 'Weight'])
             
             for hyperedge_id in hypergraph.hyperedges:
-                orc = hypergraph.earthmover_distance_hyperedge_combinations(hyperedge_id, distance_matrix)
+                orc = hypergraph.earthmover_distance_hyperedge_combinations(hyperedge_id, distance_matrix, verbose=False)
                 hypergraph.add_ricci_curvature(hyperedge_id, orc)
                 weight = hypergraph.weights[hyperedge_id][-1]
                 
@@ -575,29 +582,35 @@ def update_orc_and_weights_iter0(distance_matrix, iteration, file_format='csv'):
 if __name__ == "__main__": 
     #Add the data file here
     #TODO: describe how the dataframe needs to look
+    #TODO: make a verbose flag
+    verbose = True
     df = pd.read_csv('inputfiles/dataset_turingpapers_clean.csv')  
     hypergraph = UndirectedHypergraph()
     hypergraph.build_from_dataframe(df)
 
-    print("Number of papers or hypergedges:",len(hypergraph.hyperedges)) #Printing the number of hyperedges or papers in our network.
-    print("Number of authors or nodes",len(hypergraph.nodes)) #Printing the number of nodes or authors in the network.
-    connected = hypergraph.check_weak_connectivity()
-    print("The hypergraph is weakly connected:" if connected else "The hypergraph is not weakly connected.")
+    if verbose:
+        print("Number of papers or hypergedges:",len(hypergraph.hyperedges)) #Printing the number of hyperedges or papers in our network.
+        print("Number of authors or nodes",len(hypergraph.nodes)) #Printing the number of nodes or authors in the network.
+        connected = hypergraph.check_weak_connectivity()
+        print("The hypergraph is weakly connected:" if connected else "The hypergraph is not weakly connected.")
 
-    # Example usage:
-    # Assuming 'hypergraph' is an instance of UndirectedHypergraph
-    max_degree, min_degree, avg_degree = calculate_degrees(hypergraph)
-    print(f"Max Degree: {max_degree}")
-    print(f"Min Degree: {min_degree}")
-    print(f"Average Degree: {avg_degree:.2f}")
+        # Example usage:
+        max_degree, min_degree, avg_degree = calculate_degrees(hypergraph)
+        print(f"Max Degree: {max_degree}")
+        print(f"Min Degree: {min_degree}")
+        print(f"Average Degree: {avg_degree:.2f}")
+        
+        print('starting the distance matrix calculation')
 
     distance_matrix = hypergraph.calculate_distance_matrix()
     save_matrix_csv(distance_matrix, 'outputfiles/undirected_testing_fw.csv')
+    # quit()
     
     print('starting ricci curvature')
 
     #TODO: Same idea as in the directed Hypergraph script
-    update_orc_and_weights_iter0(distance_matrix,iteration=0)
+    
+    update_orc_and_weights_iter0(distance_matrix, verbose, iteration=0)
     
     print('Itteration 0 done')
     
