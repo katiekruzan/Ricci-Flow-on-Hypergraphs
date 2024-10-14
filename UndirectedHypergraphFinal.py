@@ -485,9 +485,7 @@ def adjusted_sigmoid_0_to_1(x):
     return a + (b - a) / (1 + np.exp(-x_clipped))
 
 def update_orc_and_weights_iter(distance_matrix, iteration, file_format='csv'):
-    #TODO: seems hardcoded - fix to juts an output file (actually this name is fine.)
-    #TODO: make an outputfile
-    file_name = f'dataset_networkscience_normalized_weights_data_iteration_{iteration}.{file_format}'
+    file_name = f'outputfile/dataset_networkscience_normalized_weights_data_iteration_{iteration}.{file_format}'
 
     with open(file_name, 'a', newline='') as file:
         if file_format == 'csv':
@@ -524,8 +522,7 @@ def find_top_n_weighted_hyperedges(file_path, n):
     return top_n_hyperedges_ids
 
 def save_and_update(distance_matrix, iteration):
-    #TODO: make an outputfile
-    filename = f'distance_matrix_normalized_weights_{iteration}.csv'
+    filename = f'outputfile/distance_matrix_normalized_weights_{iteration}.csv'
     save_matrix_csv(distance_matrix, filename)
     update_orc_and_weights_iter(distance_matrix, iteration)
 
@@ -607,8 +604,6 @@ if __name__ == "__main__":
     # quit()
     
     print('starting ricci curvature')
-
-    #TODO: Same idea as in the directed Hypergraph script
     
     update_orc_and_weights_iter0(distance_matrix, verbose, iteration=0)
     
