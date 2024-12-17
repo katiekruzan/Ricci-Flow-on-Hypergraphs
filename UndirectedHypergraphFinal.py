@@ -1,6 +1,6 @@
 from collections import deque
 from itertools import permutations, combinations
-from gurobipy import Model, GRB, quicksum
+from gurobipy import Model, GRB, quicksum, LinExpr
 import time
 import requests
 import json
@@ -262,7 +262,6 @@ class UndirectedHypergraph:
         mu_A = self.node_probability(node_A)
         mu_B = self.node_probability(node_B)
 
-        
         # Convert distributions from dictionary to list format 
         nodes_A = sorted(mu_A.keys())
         nodes_B = sorted(mu_B.keys())
@@ -274,10 +273,8 @@ class UndirectedHypergraph:
         total_mass_B = sum(distribution2)
     
         if abs(total_mass_A - total_mass_B) > 1e-6:
-            # TODO: improve error message
-            raise ValueError('The total mass of the distributions mu_A and mu_B are not equal. For')
+            raise ValueError('The total mass of the distributions mu_A and mu_B are not equal.')
         
-
         # Create a mapping of nodes to their indices in the distance matrix.
         node_to_index = {node: idx for idx, node in enumerate(list(self.nodes))}
 
@@ -299,11 +296,18 @@ class UndirectedHypergraph:
             # Should make it less verbose
             if not verbose:
                 model.Params.LogToConsole = 0
+            else: 
+                model.Params.LogToConsole=1
+
+            expr = LinExpr(3.0)
+            expr.clear()
+            for x in mu_A:
+                for y in mu_B:
+                    expr.addTerms(distance_matrix[node_to_index[x]][node_to_index[y]], variables[x,y])
 
             # Set the objective of the linear program to minimize the total cost.
-            model.setObjective(quicksum(distance_matrix[node_to_index[x]][node_to_index[y]] * variables[x, y]
-                                for x in mu_A for y in mu_B), GRB.MINIMIZE)
-
+            model.setObjective(expr, GRB.MINIMIZE)
+                        
             # Add constraints to ensure the conservation of mass.
             for x in mu_A:
                 model.addConstr(quicksum(variables[x, y] for y in mu_B) == mu_A[x], f"dirt_leaving_{x}")
@@ -319,8 +323,10 @@ class UndirectedHypergraph:
                 total_cost = model.getObjective().getValue()
                 return total_cost
             else:
-                #TODO: add more info for this error
                 print(f"No optimal solution found for nodes {node_A} and {node_B}")
+                print(f"The probability distributions are A: {mu_A} \nAnd B: {mu_B}")
+                print('Model Status', model.status)
+                print(f"The masses are {total_mass_A} for A and {total_mass_B} for B")
                 return None
 
         except Exception as e:
@@ -346,7 +352,7 @@ class UndirectedHypergraph:
         pair_count = 0
         # Generate all combinations of pairs of nodes
         for node_A, node_B in combinations(nodes, 2):
-            emd = self.earthmover_distance_gurobi_distance_matrix(node_A, node_B, distance_matrix, verbose)
+            emd = self.earthmover_distance_gurobi_distance_matrix(node_A, node_B, distance_matrix, verbose=False)
             if emd is not None:
                 sum_emd += emd
                 pair_count += 1
@@ -356,6 +362,7 @@ class UndirectedHypergraph:
             average_emd = sum_emd /pair_count
             weight = self.weights[hyperedge_id][-1]
             if weight == 0:
+                #TODO: check to see if this makes sense for weight =0 in a real way
                 return 1 - average_emd
             else:
                 return 1 - average_emd/weight
@@ -444,7 +451,6 @@ class UndirectedHypergraph:
         else:
             print(f"Attempted to remove Hyperedge ID {hyperedge_id}, but was not found.")
             
-
 
 def save_matrix_csv(matrix, filename:str) -> None:
     '''Function to save the matrix as a CSV file'''    
@@ -550,6 +556,13 @@ def write_hypergraph_stats(file_path, iteration):
             file.write(f"Hyperedge ID: {hyperedge_id}, Hyperedge: {edge_data}\n")
 
 def update_orc_and_weights_iter0(distance_matrix, verbose, iteration, file_format='csv'):
+    '''Run the whole process for itteration 0
+
+    :param list[list] distance_matrix: the matrix of the shortest distances
+    :param bool verbose: A flag to allow the script to be more verbose
+    :param int iteration: I am 93% sure this is supposed to be 0 this whole time. This is susinct in future versions.
+    :param str file_format: the format the file is supposed to be in. Just effects the suffix of the filename, defaults to 'csv'
+    '''
     file_name = f'dataset_networkscience_ORC_weights_iteration_{iteration}.{file_format}'
     
     with open(file_name, 'a', newline='') as file:
@@ -560,7 +573,7 @@ def update_orc_and_weights_iter0(distance_matrix, verbose, iteration, file_forma
                 writer.writerow(['Hyperedge ID', 'ORC', 'Weight'])
             
             for hyperedge_id in hypergraph.hyperedges:
-                orc = hypergraph.earthmover_distance_hyperedge_combinations(hyperedge_id, distance_matrix, verbose=False)
+                orc = hypergraph.earthmover_distance_hyperedge_combinations(hyperedge_id, distance_matrix, verbose)
                 hypergraph.add_ricci_curvature(hyperedge_id, orc)
                 weight = hypergraph.weights[hyperedge_id][-1]
                 
@@ -573,13 +586,12 @@ def update_orc_and_weights_iter0(distance_matrix, verbose, iteration, file_forma
                 hypergraph.add_weights(hyperedge_id, normalized_weight)
                 
                 writer.writerow([hyperedge_id, orc, normalized_weight])
-                # quit()
+
 
 
 if __name__ == "__main__": 
     #Add the data file here
     #TODO: describe how the dataframe needs to look
-    #TODO: make a verbose flag
     verbose = True
     df = pd.read_csv('inputfiles/dataset_turingpapers_clean.csv')  
     hypergraph = UndirectedHypergraph()
@@ -601,7 +613,6 @@ if __name__ == "__main__":
 
     distance_matrix = hypergraph.calculate_distance_matrix()
     save_matrix_csv(distance_matrix, 'outputfiles/undirected_testing_fw.csv')
-    # quit()
     
     print('starting ricci curvature')
     
